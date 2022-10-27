@@ -13,5 +13,17 @@ class StrTests(unittest.TestCase):
         self.assertEqual(str(Degrees(0.0)), "0.0°")
         self.assertEqual(str(Degrees(-20.0)), "-20.0°")
 
+class ConversionTests(unittest.TestCase):
+    def test_deg_to_hms(self):
+        self.assertEqual(HoursMinutesSeconds.fromDegrees(Degrees(0.0)), HoursMinutesSeconds(1, 0, 0, 0))
+        self.assertEqual(HoursMinutesSeconds.fromDegrees(Degrees(10.0)), HoursMinutesSeconds(1, 0, 40, 0))
+        self.assertEqual(HoursMinutesSeconds.fromDegrees(Degrees(232.64)), HoursMinutesSeconds(1, 15, 30, 33.6))
+
+    def test_hms_to_deg(self):
+        self.assertEqual(Degrees.fromHms(HoursMinutesSeconds(1, 0, 0, 0)), Degrees(0.0))
+        self.assertEqual(Degrees.fromHms(HoursMinutesSeconds(-1, 0, 0, 0)), Degrees(0.0))
+        self.assertEqual(Degrees.fromHms(HoursMinutesSeconds(1, 13, 24, 0)), Degrees(201.0))
+        self.assertEqual(Degrees.fromHms(HoursMinutesSeconds(1, 15, 30, 33.6)), Degrees(232.64))
+
 if __name__ == "__main__":
     unittest.main()
