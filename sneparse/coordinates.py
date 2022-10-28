@@ -57,16 +57,22 @@ The unit of right ascension. Angles are broken into `hours` (0-24), `minutes` (0
     def from_str(cls, s: str) -> HoursMinutesSeconds:
         try:
             first, second, third = s.split(":")
-            
-            sign = first[0]
-            if sign == "+":
-                sign = 1
-            elif sign == "-":
-                sign = -1
-            else:
-                raise Exception
 
-            hh = int(first[1:])
+            # if the + or - is excluded, the sign is positive
+            if len(first) == 2:
+                sign = 1
+            # otherwise get the sign from the first character
+            else:
+                sign = first[0]
+                first = first[1:]
+                if sign == "+":
+                    sign = 1
+                elif sign == "-":
+                    sign = -1
+                else:
+                    raise Exception
+
+            hh = int(first)
             mm = int(second)
             ss = float(third)
         except:

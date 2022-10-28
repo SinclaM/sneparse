@@ -54,6 +54,10 @@ class ConversionTests(unittest.TestCase):
 class ParsingTests(unittest.TestCase):
     def test_parse_hms(self):
         self.assertEqual(HoursMinutesSeconds.from_str("+12:03:23.5"), HoursMinutesSeconds(1, 12, 3, 23.5))
+
+        # missing sign is equivalent to positive
+        self.assertEqual(HoursMinutesSeconds.from_str("12:03:23.5"), HoursMinutesSeconds(1, 12, 3, 23.5))
+
         self.assertEqual(HoursMinutesSeconds.from_str("-00:10:59.7"), HoursMinutesSeconds(-1, 0, 10, 59.7))
 
         # empty input
@@ -63,10 +67,6 @@ class ParsingTests(unittest.TestCase):
         # malformed delimeters
         with self.assertRaises(Exception):
             HoursMinutesSeconds.from_str("+12:0323.5")
-
-        # missing sign
-        with self.assertRaises(Exception):
-            HoursMinutesSeconds.from_str("12:03:23.5")
 
         # bad sign
         with self.assertRaises(Exception):
