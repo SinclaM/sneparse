@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations # for postponed annotation evaluation
 from typing import Literal
 from math import floor
 
@@ -9,7 +9,14 @@ HMS_SECONDS_PER_MINUTE = 60
 DMS_MINUTES_PER_DEGREE = 60
 DMS_SECONDS_PER_MINUTE = 60
 
+FLOAT_EPSILON = 1e-6
+
 class HoursMinutesSeconds():
+    """
+The unit of right ascension. Angles are broken into `hours` (0-24), `minutes` (0-59),\
+ and `seconds` (0.0 - 59.999...). An angle in hours:minutes:seconds also has an associated\
+ `sign` (+ or -).
+    """
     def __init__(self, sign: Literal[-1, 1], hours: int, minutes: int, seconds: float) -> None:
         self.sign    = sign
         self.hours   = hours
@@ -23,13 +30,17 @@ class HoursMinutesSeconds():
         return self.__str__()
 
     def __eq__(self, other: HoursMinutesSeconds) -> bool:
+        # Note the fuzzy equality for the floating point value
         return self.sign == other.sign \
                 and self.hours == other.hours \
                 and self.minutes == other.minutes \
-                and abs(self.seconds - other.seconds) < 1e-6
+                and abs(self.seconds - other.seconds) < FLOAT_EPSILON
 
     @classmethod
     def from_decimal_degrees(cls, d: DecimalDegrees) -> HoursMinutesSeconds:
+        """
+        Converts a `DecimalDegrees` value to `HoursMinutesSeconds`.
+        """
         deg = d.degrees
         while deg > 360.0:
             deg -= 360.0
@@ -43,6 +54,9 @@ class HoursMinutesSeconds():
         return HoursMinutesSeconds(1, hours, minutes, seconds)
 
 class DecimalDegrees():
+    """
+A base 10 representation of angles, in degrees.
+    """
     def __init__(self, degrees: float) -> None:
         self.degrees = degrees
 
@@ -53,10 +67,14 @@ class DecimalDegrees():
         return self.__str__()
 
     def __eq__(self, other: DecimalDegrees) -> bool:
+        # Note the fuzzy equality for the floating point value
         return abs(self.degrees - other.degrees) < 1e-6
 
     @classmethod
     def from_hms(cls, hms: HoursMinutesSeconds) -> DecimalDegrees:
+        """
+        Converts an `HoursMinutesSeconds` value to `DecimalDegrees`.
+        """
         return DecimalDegrees(hms.sign * (
             hms.hours / HMS_HOURS_PER_DEGREE
             + hms.minutes / (HMS_HOURS_PER_DEGREE * HMS_MINUTES_PER_HOUR)
@@ -64,12 +82,20 @@ class DecimalDegrees():
 
     @classmethod
     def from_dms(cls, dms: DegreesMinutesSeconds) -> DecimalDegrees:
+        """
+        Converts a `DegreesMinutesSeconds` value to `DecimalDegrees`.
+        """
         return DecimalDegrees(dms.sign * (
             dms.degrees
             + dms.minutes / DMS_MINUTES_PER_DEGREE
             + dms.seconds / (DMS_MINUTES_PER_DEGREE * HMS_SECONDS_PER_MINUTE)))
 
 class DegreesMinutesSeconds():
+    """
+The unit of declination. Angles are broken into `degrees` (0-359), `minutes` (0-59),\
+ and `seconds` (0.0 - 59.999...). An angle in degrees:minutes:seconds also has an associated\
+ `sign` (+ or -).
+    """
     def __init__(self, sign: Literal[-1, 1], degrees: int, minutes: int, seconds: float) -> None:
         self.sign    = sign
         self.degrees = degrees
@@ -83,13 +109,17 @@ class DegreesMinutesSeconds():
         return self.__str__()
 
     def __eq__(self, other: DegreesMinutesSeconds) -> bool:
+        # Note the fuzzy equality for the floating point value
         return self.sign == other.sign \
                 and self.degrees == other.degrees \
                 and self.minutes == other.minutes \
-                and abs(self.seconds - other.seconds) < 1e-6
+                and abs(self.seconds - other.seconds) < FLOAT_EPSILON
 
     @classmethod
     def from_decimal_degrees(cls, d: DecimalDegrees) -> DegreesMinutesSeconds:
+        """
+        Converts a `DecimalDegrees` value to `DegreesMinutesSeconds`.
+        """
         deg = d.degrees
         while deg > 360.0:
             deg -= 360.0
