@@ -2,9 +2,12 @@ from __future__ import annotations
 from typing import Literal
 from math import floor
 
-HOURS_PER_DEGREE = 24.0 / 360.0
-MINUTES_PER_HOUR = 60
-SECONDS_PER_MINUTE = 60
+HMS_HOURS_PER_DEGREE = 24.0 / 360.0
+HMS_MINUTES_PER_HOUR = 60
+HMS_SECONDS_PER_MINUTE = 60
+
+DMS_MINUTES_PER_DEGREE = 60
+DMS_SECONDS_PER_MINUTE = 60
 
 class HoursMinutesSeconds():
     def __init__(self, sign: Literal[-1, 1], hours: int, minutes: int, seconds: float) -> None:
@@ -26,20 +29,20 @@ class HoursMinutesSeconds():
                 and abs(self.seconds - other.seconds) < 1e-6
 
     @classmethod
-    def fromDegrees(cls, d: Degrees) -> HoursMinutesSeconds:
+    def from_decimal_degrees(cls, d: DecimalDegrees) -> HoursMinutesSeconds:
         deg = d.degrees
         while deg > 360.0:
             deg -= 360.0
 
-        hours   = floor(HOURS_PER_DEGREE * deg)
-        deg -= hours / HOURS_PER_DEGREE
-        minutes = floor(HOURS_PER_DEGREE * MINUTES_PER_HOUR * deg)
-        deg -= minutes / (HOURS_PER_DEGREE * MINUTES_PER_HOUR)
-        seconds = HOURS_PER_DEGREE * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * deg
+        hours   = floor(HMS_HOURS_PER_DEGREE * deg)
+        deg -= hours / HMS_HOURS_PER_DEGREE
+        minutes = floor(HMS_HOURS_PER_DEGREE * HMS_MINUTES_PER_HOUR * deg)
+        deg -= minutes / (HMS_HOURS_PER_DEGREE * HMS_MINUTES_PER_HOUR)
+        seconds = HMS_HOURS_PER_DEGREE * HMS_MINUTES_PER_HOUR * HMS_SECONDS_PER_MINUTE * deg
 
         return HoursMinutesSeconds(1, hours, minutes, seconds)
 
-class Degrees():
+class DecimalDegrees():
     def __init__(self, degrees: float) -> None:
         self.degrees = degrees
 
@@ -49,12 +52,52 @@ class Degrees():
     def __repr__(self) -> str:
         return self.__str__()
 
-    def __eq__(self, other: Degrees) -> bool:
+    def __eq__(self, other: DecimalDegrees) -> bool:
         return abs(self.degrees - other.degrees) < 1e-6
 
     @classmethod
-    def fromHms(cls, hms: HoursMinutesSeconds) -> Degrees:
-        return Degrees(hms.sign * (
-            hms.hours / HOURS_PER_DEGREE
-            + hms.minutes / (HOURS_PER_DEGREE * MINUTES_PER_HOUR)
-            + hms.seconds / (HOURS_PER_DEGREE * MINUTES_PER_HOUR * SECONDS_PER_MINUTE)))
+    def from_hms(cls, hms: HoursMinutesSeconds) -> DecimalDegrees:
+        return DecimalDegrees(hms.sign * (
+            hms.hours / HMS_HOURS_PER_DEGREE
+            + hms.minutes / (HMS_HOURS_PER_DEGREE * HMS_MINUTES_PER_HOUR)
+            + hms.seconds / (HMS_HOURS_PER_DEGREE * HMS_MINUTES_PER_HOUR * HMS_SECONDS_PER_MINUTE)))
+
+    @classmethod
+    def from_dms(cls, dms: DegreesMinutesSeconds) -> DecimalDegrees:
+        return DecimalDegrees(dms.sign * (
+            dms.degrees
+            + dms.minutes / DMS_MINUTES_PER_DEGREE
+            + dms.seconds / (DMS_MINUTES_PER_DEGREE * HMS_SECONDS_PER_MINUTE)))
+
+class DegreesMinutesSeconds():
+    def __init__(self, sign: Literal[-1, 1], degrees: int, minutes: int, seconds: float) -> None:
+        self.sign    = sign
+        self.degrees = degrees
+        self.minutes = minutes
+        self.seconds = seconds
+
+    def __str__(self) -> str:
+        return f"{'+' if self.sign == 1 else '-'}{self.degrees:02}:{self.minutes:02}:{self.seconds}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __eq__(self, other: DegreesMinutesSeconds) -> bool:
+        return self.sign == other.sign \
+                and self.degrees == other.degrees \
+                and self.minutes == other.minutes \
+                and abs(self.seconds - other.seconds) < 1e-6
+
+    @classmethod
+    def from_decimal_degrees(cls, d: DecimalDegrees) -> DegreesMinutesSeconds:
+        deg = d.degrees
+        while deg > 360.0:
+            deg -= 360.0
+
+        degrees   = floor(deg)
+        deg -= degrees
+        minutes = floor(DMS_MINUTES_PER_DEGREE * deg)
+        deg -= minutes / DMS_MINUTES_PER_DEGREE
+        seconds = DMS_MINUTES_PER_DEGREE * DMS_SECONDS_PER_MINUTE * deg
+
+        return DegreesMinutesSeconds(1, degrees, minutes, seconds)
