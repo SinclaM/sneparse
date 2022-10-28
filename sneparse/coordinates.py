@@ -53,6 +53,27 @@ The unit of right ascension. Angles are broken into `hours` (0-24), `minutes` (0
 
         return HoursMinutesSeconds(1, hours, minutes, seconds)
 
+    @classmethod
+    def from_str(cls, s: str) -> HoursMinutesSeconds:
+        try:
+            first, second, third = s.split(":")
+            
+            sign = first[0]
+            if sign == "+":
+                sign = 1
+            elif sign == "-":
+                sign = -1
+            else:
+                raise Exception
+
+            hh = int(first[1:])
+            mm = int(second)
+            ss = float(third)
+        except:
+            raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+
+        return HoursMinutesSeconds(sign, hh, mm, ss)
+
 class DecimalDegrees():
     """
 A base 10 representation of angles, in degrees.
@@ -131,3 +152,24 @@ The unit of declination. Angles are broken into `degrees` (0-359), `minutes` (0-
         seconds = DMS_MINUTES_PER_DEGREE * DMS_SECONDS_PER_MINUTE * deg
 
         return DegreesMinutesSeconds(1, degrees, minutes, seconds)
+
+    @classmethod
+    def from_str(cls, s: str) -> DegreesMinutesSeconds:
+        try:
+            first, second, third = s.split(":")
+            
+            sign = first[0]
+            if sign == "+":
+                sign = 1
+            elif sign == "-":
+                sign = -1
+            else:
+                raise Exception
+
+            dd = int(first[1:])
+            mm = int(second)
+            ss = float(third)
+        except:
+            raise Exception(f"Unable to parse {s} into DegreesMinutesSeconds object")
+
+        return DegreesMinutesSeconds(sign, dd, mm, ss)

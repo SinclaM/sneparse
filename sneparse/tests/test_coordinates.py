@@ -51,5 +51,71 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 10, 11, 12.3)), 
                          DecimalDegrees(10.18675))
 
+class ParsingTests(unittest.TestCase):
+    def test_parse_hms(self):
+        self.assertEqual(HoursMinutesSeconds.from_str("+12:03:23.5"), HoursMinutesSeconds(1, 12, 3, 23.5))
+        self.assertEqual(HoursMinutesSeconds.from_str("-00:10:59.7"), HoursMinutesSeconds(-1, 0, 10, 59.7))
+
+        # empty input
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("")
+
+        # malformed delimeters
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("+12:0323.5")
+
+        # missing sign
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("12:03:23.5")
+
+        # bad sign
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("?12:03:23.5")
+
+        # bad hours
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("-12.1:03:23.5")
+
+        # bad minutes
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("-12.1:3?:23.5")
+
+        # bad seconds
+        with self.assertRaises(Exception):
+            HoursMinutesSeconds.from_str("-12.1:03:23.5.")
+
+    def test_parse_dms(self):
+        self.assertEqual(DegreesMinutesSeconds.from_str("+12:03:23.5"), DegreesMinutesSeconds(1, 12, 3, 23.5))
+        self.assertEqual(DegreesMinutesSeconds.from_str("-00:10:59.7"), DegreesMinutesSeconds(-1, 0, 10, 59.7))
+
+        # empty input
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("")
+
+        # malformed delimeters
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("+12:0323.5")
+
+        # missing sign
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("12:03:23.5")
+
+        # bad sign
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("?12:03:23.5")
+
+        # bad degrees
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("-12.1:03:23.5")
+
+        # bad minutes
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("-12.1:3?:23.5")
+
+        # bad seconds
+        with self.assertRaises(Exception):
+            DegreesMinutesSeconds.from_str("-12.1:03:23.5.")
+
+
 if __name__ == "__main__":
     unittest.main()
