@@ -2,7 +2,7 @@ import unittest
 from sneparse.coordinates import DecimalDegrees, HoursMinutesSeconds, DegreesMinutesSeconds
 
 class StrTests(unittest.TestCase):
-    def test_str_hours(self):
+    def test_str_hms(self):
         self.assertEqual(str(HoursMinutesSeconds(-1, 11, 20, 33.5)), "-11:20:33.5")
         self.assertNotEqual(str(HoursMinutesSeconds(1, 11, 20, 33.5)), "-11:20:33.5")
         self.assertEqual(str(HoursMinutesSeconds(1, 0, 20, 33.5)), "+00:20:33.5")
@@ -12,6 +12,13 @@ class StrTests(unittest.TestCase):
         self.assertEqual(str(DecimalDegrees(13.5)), "13.5°")
         self.assertEqual(str(DecimalDegrees(0.0)), "0.0°")
         self.assertEqual(str(DecimalDegrees(-20.0)), "-20.0°")
+
+    def test_str_dms(self):
+        self.assertEqual(str(DegreesMinutesSeconds(-1, 42, 20, 33.5)), "-42:20:33.5")
+        self.assertNotEqual(str(DegreesMinutesSeconds(1, 42, 20, 33.5)), "-42:20:33.5")
+        self.assertEqual(str(DegreesMinutesSeconds(1, 0, 20, 33.5)), "+00:20:33.5")
+        self.assertEqual(str(DegreesMinutesSeconds(1, 0, 0, 0.0)), "+00:00:0.0")
+
 
 class ConversionTests(unittest.TestCase):
     def test_deg_to_hms(self):
