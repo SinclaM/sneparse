@@ -333,8 +333,8 @@ class RecordParsingTests(unittest.TestCase):
             }
         }
         """
-        self.assertEqual(SneRecord.from_oac(json), 
-                         SneRecord("ASASSN-20ao", 
+        self.assertEqual(SneRecord.from_oac_str(json),
+                         SneRecord("ASASSN-20ao",
                                    HoursMinutesSeconds.from_str("00:54:46.189"),
                                    DegreesMinutesSeconds.from_str("-51:30:39.47"),
                                    "Candidate",
@@ -343,4 +343,3 @@ class RecordParsingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-        

@@ -36,7 +36,7 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(DecimalDegrees.from_hms(HoursMinutesSeconds(1, 15, 30, 33.6)), DecimalDegrees(232.64))
 
     def test_deg_to_dms(self):
-        self.assertEqual(DegreesMinutesSeconds.from_decimal_degrees(DecimalDegrees(0.0)), 
+        self.assertEqual(DegreesMinutesSeconds.from_decimal_degrees(DecimalDegrees(0.0)),
                          DegreesMinutesSeconds(1, 0, 0, 0.0))
         self.assertEqual(DegreesMinutesSeconds.from_decimal_degrees(DecimalDegrees(100.0)), 
                          DegreesMinutesSeconds(1, 100, 0, 0.0))
