@@ -1,5 +1,6 @@
 from __future__ import annotations # for postponed annotation evaluation
 from typing import Optional
+from pathlib import Path
 
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds, HoursMinutesSeconds
 import json
@@ -55,7 +56,7 @@ source={self.source})"""
         return SneRecord(name, ra, dec, claimed_type, source)
 
     @classmethod
-    def from_oac_path(cls, path_to_oac_json_record: str) -> SneRecord:
+    def from_oac_path(cls, path_to_oac_json_record: Path) -> SneRecord:
         with open(path_to_oac_json_record, "r") as f:
             d = json.load(f)
 
