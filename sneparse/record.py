@@ -40,22 +40,35 @@ source={self.source})"""
 
     @classmethod
     def from_oac(cls, oac_record: dict[str, Any]) -> SneRecord:
+        """
+        Create a `SneRecord` from a dictionary associated with an
+        OAC Schema v1 document.
+        """
         # TODO: clean up the list indexing throughout this function
+
+        # Jump down one level, since the top-level dictionary
+        # only has one key, value pair. The value is another
+        # dictionary which contains all the information.
         oac_record = oac_record[list(oac_record.keys())[0]]
+
+        # There will always be a name
         name: str = oac_record["name"]
 
+        # Right ascension does not always exist
         ra: Optional[HoursMinutesSeconds]
         try:
             ra = HoursMinutesSeconds.from_str(oac_record["ra"][0]["value"])
         except KeyError:
             ra = None
 
+        # Declination does not always exist
         dec: Optional[DegreesMinutesSeconds]
         try:
             dec = DegreesMinutesSeconds.from_str(oac_record["dec"][0]["value"])
         except KeyError:
             dec = None
 
+        # Discovery date does not always exist
         discover_date: Optional[datetime]
         date_str: str
         try:
@@ -65,6 +78,7 @@ source={self.source})"""
         else:
             discover_date = try_parse_date(date_str)
 
+        # Claimed type does not always exist
         claimed_type: Optional[str]
         try:
             claimed_type= oac_record["claimedtype"][0]["value"]
@@ -76,17 +90,36 @@ source={self.source})"""
         source = "OAC"
         return SneRecord(name, ra, dec, discover_date, claimed_type, source)
 
-def try_parse_date(s: str):
+def try_parse_date(s: str) -> datetime:
+    """
+    Try to get a datetime value out of a string, `s`.
+    Note that OAC dates appear in multiple formats:
+    `yyyy/mm/dd` (with the possibility of fractional days),
+    `yyyy/mm`, or `yyyy`. This function will try to
+    each one until it successful parses a date, or it will
+    raise an exception.
+    """
     dt = timedelta(0)
     try:
+        # Try to split the string assuming it is yyyy/mm/dd.
+        # This will fail if that's not the case, but that just
+        # means we don't have to handle fractional days (since
+        # no day is even reported).
         year, month, day = s.split("/")
+
+        # Get the fractional part of the day and turn it into a time span.
+        # This will stay zero if the day is an integer. This time span
+        # will be later added back to the datetime.
         dt = timedelta(days=float(day) % 1)
+
+        # Recast the string to exclude the fractional part of the day.
         # TODO: there has to be a prettier way than str(int(float(...)))
         base = int(float(day))
         s = "/".join((year, month, str(base)))
     except ValueError:
         pass
 
+    # Try each possible format.
     for fmt in ("%Y/%m/%d", "%Y/%m", "%Y"):
         try:
             return datetime.strptime(s, fmt) + dt
