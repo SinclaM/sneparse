@@ -1,10 +1,14 @@
+from typing import Any
 import unittest
+import json
+from datetime import datetime
+
 from sneparse.record import SneRecord
 from sneparse.coordinates import DegreesMinutesSeconds, HoursMinutesSeconds
 
 class RecordParsingTests(unittest.TestCase):
     def test_from_oac(self):
-        json = \
+        s = \
         """
         {
             "ASASSN-20ao":{
@@ -333,10 +337,13 @@ class RecordParsingTests(unittest.TestCase):
             }
         }
         """
-        self.assertEqual(SneRecord.from_oac_str(json),
+
+        d: dict[str, Any] = json.loads(s)
+        self.assertEqual(SneRecord.from_oac(d),
                          SneRecord("ASASSN-20ao",
                                    HoursMinutesSeconds.from_str("00:54:46.189"),
                                    DegreesMinutesSeconds.from_str("-51:30:39.47"),
+                                   datetime(2020, 1, 15),
                                    "Candidate",
                                    "OAC")
                          )

@@ -1,16 +1,16 @@
-from typing import Tuple
-import os
+from typing import Tuple, Any
 from pathlib import Path
 from datetime import datetime
+import json
+from multiprocessing import Pool
 
 from sneparse.record import SneRecord
 from sneparse.definitions import ROOT_DIR
 
-from multiprocessing import Pool
 
 class Catalog:
     def __init__(self, log_file_name: str = "log.txt") -> None:
-        self.log_file_path = os.path.join(ROOT_DIR, "resources", "logs", log_file_name)
+        self.log_file_path = Path(ROOT_DIR).joinpath("resources", "logs", log_file_name)
         self.records: list[SneRecord] = []
 
         with open(self.log_file_path, "w+") as f:
@@ -32,5 +32,8 @@ class Catalog:
 # TODO: Make this a lambda in parse_dir. For now its a top level function
 #       so that pickling works with multiprocessing
 def helper(path: Path) -> Tuple[SneRecord, Path]:
-    return (SneRecord.from_oac_path(path), path)
+    d: dict[str, Any]
+    with open(path, "r") as f:
+        d = json.load(f)
+    return (SneRecord.from_oac(d), path)
 
