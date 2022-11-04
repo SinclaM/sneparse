@@ -1,5 +1,5 @@
 from __future__ import annotations # for postponed annotation evaluation
-from typing import Literal
+from typing import Literal, Tuple
 from math import floor
 
 HMS_HOURS_PER_DEGREE = 24.0 / 360.0
@@ -55,30 +55,7 @@ The unit of right ascension. Angles are broken into `hours` (0-24), `minutes` (0
 
     @classmethod
     def from_str(cls, s: str) -> HoursMinutesSeconds:
-        try:
-            first, second, third = s.split(":")
-
-            # if the + or - is excluded, the sign is positive
-            if len(first) == 2:
-                sign = 1
-            # otherwise get the sign from the first character
-            else:
-                sign = first[0]
-                first = first[1:]
-                if sign == "+":
-                    sign = 1
-                elif sign == "-":
-                    sign = -1
-                else:
-                    raise Exception
-
-            hh = int(first)
-            mm = int(second)
-            ss = float(third)
-        except:
-            raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
-
-        return HoursMinutesSeconds(sign, hh, mm, ss)
+        return HoursMinutesSeconds(*parse_sexagesimal(s))
 
 class DecimalDegrees():
     """
@@ -161,21 +138,73 @@ The unit of declination. Angles are broken into `degrees` (0-359), `minutes` (0-
 
     @classmethod
     def from_str(cls, s: str) -> DegreesMinutesSeconds:
-        try:
-            first, second, third = s.split(":")
-            
+        return DegreesMinutesSeconds(*parse_sexagesimal(s))
+
+def parse_sexagesimal(s: str) -> Tuple[Literal[1, -1], int, int, float]:
+    split = s.split(":")
+    hh: int
+    mm: int
+    ss: float
+    if len(split) == 3:
+        first, second, third = split
+
+        # if the + or - is excluded, the sign is positive
+        if first[0].isdigit():
+            sign = 1
+        # otherwise get the sign from the first character
+        else:
             sign = first[0]
+            first = first[1:]
             if sign == "+":
                 sign = 1
             elif sign == "-":
                 sign = -1
             else:
-                raise Exception
+                raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
 
-            dd = int(first[1:])
-            mm = int(second)
-            ss = float(third)
-        except:
-            raise Exception(f"Unable to parse {s} into DegreesMinutesSeconds object")
+        hh = int(first)
+        mm = int(second)
+        ss = float(third)
+    elif len(split) == 2:
+        first, second = split
 
-        return DegreesMinutesSeconds(sign, dd, mm, ss)
+        # if the + or - is excluded, the sign is positive
+        if first[0].isdigit():
+            sign = 1
+        # otherwise get the sign from the first character
+        else:
+            sign = first[0]
+            first = first[1:]
+            if sign == "+":
+                sign = 1
+            elif sign == "-":
+                sign = -1
+            else:
+                raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+
+        hh = 0
+        mm = int(first)
+        ss = float(second)
+    elif len(split) == 1:
+        first = split[0]
+        # if the + or - is excluded, the sign is positive
+        if first[0].isdigit():
+            sign = 1
+        # otherwise get the sign from the first character
+        else:
+            sign = first[0]
+            first = first[1:]
+            if sign == "+":
+                sign = 1
+            elif sign == "-":
+                sign = -1
+            else:
+                raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+        hh = 0
+        mm = 0
+        ss = float(first)
+
+    else:
+        raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+
+    return (sign, hh, mm, ss)

@@ -55,18 +55,18 @@ class ParsingTests(unittest.TestCase):
     def test_parse_hms(self):
         self.assertEqual(HoursMinutesSeconds.from_str("+12:03:23.5"), HoursMinutesSeconds(1, 12, 3, 23.5))
 
+        self.assertEqual(HoursMinutesSeconds.from_str("-00:10:59.7"), HoursMinutesSeconds(-1, 0, 10, 59.7))
+
         # missing sign is equivalent to positive
         self.assertEqual(HoursMinutesSeconds.from_str("12:03:23.5"), HoursMinutesSeconds(1, 12, 3, 23.5))
 
-        self.assertEqual(HoursMinutesSeconds.from_str("-00:10:59.7"), HoursMinutesSeconds(-1, 0, 10, 59.7))
+        self.assertEqual(HoursMinutesSeconds.from_str("12:023.5"), HoursMinutesSeconds(1, 0, 12, 23.5))
+
+        self.assertEqual(HoursMinutesSeconds.from_str("023.5"), HoursMinutesSeconds(1, 0, 0, 23.5))
 
         # empty input
         with self.assertRaises(Exception):
             HoursMinutesSeconds.from_str("")
-
-        # malformed delimeters
-        with self.assertRaises(Exception):
-            HoursMinutesSeconds.from_str("+12:0323.5")
 
         # bad sign
         with self.assertRaises(Exception):
@@ -86,19 +86,19 @@ class ParsingTests(unittest.TestCase):
 
     def test_parse_dms(self):
         self.assertEqual(DegreesMinutesSeconds.from_str("+12:03:23.5"), DegreesMinutesSeconds(1, 12, 3, 23.5))
+
+        # missing sign is equivalent to positive
+        self.assertEqual(DegreesMinutesSeconds.from_str("12:03:23.5"), DegreesMinutesSeconds(1, 12, 3, 23.5))
+
         self.assertEqual(DegreesMinutesSeconds.from_str("-00:10:59.7"), DegreesMinutesSeconds(-1, 0, 10, 59.7))
+
+        self.assertEqual(DegreesMinutesSeconds.from_str("12:023.5"), DegreesMinutesSeconds(1, 0, 12, 23.5))
+
+        self.assertEqual(DegreesMinutesSeconds.from_str("023.5"), DegreesMinutesSeconds(1, 0, 0, 23.5))
 
         # empty input
         with self.assertRaises(Exception):
             DegreesMinutesSeconds.from_str("")
-
-        # malformed delimeters
-        with self.assertRaises(Exception):
-            DegreesMinutesSeconds.from_str("+12:0323.5")
-
-        # missing sign
-        with self.assertRaises(Exception):
-            DegreesMinutesSeconds.from_str("12:03:23.5")
 
         # bad sign
         with self.assertRaises(Exception):
