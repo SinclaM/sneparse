@@ -99,13 +99,49 @@ def try_parse_date(s: str) -> datetime:
     each one until it successful parses a date, or it will
     raise an exception.
     """
+    # Some dates may be before 1000 AD. We need to pad them
+    # with zeros on the left so that they are 4-digits and
+    # parsable by datetime.
+    #
+    # But wait! There's at least one record--
+    # and by at least one I mean exactly one ('SN1667A'
+    # from the pre-1990 datatest) as far as I can tell--
+    # where the date is stored as mm/dd/yyyy. Great.
+    #
+    # How can we even distinguish between yyyy/mm/dd and
+    # mm/dd/yyyy then? Well, we can't--if the year is before
+    # 32 AD. Otherwise, we can check if the first value is
+    # greater than 31 and figure out the format from there.
+    #
+    # Hopefully there are no supernovae between 0 and 31 AD
+    # recorded in the OAC catalog.
+    #
+    # Oh, and this of course means any dd/mm/yyyy style
+    # dates with dd <= 12 are completely ambiguous with
+    # the mm/dd/yyyy dates. Are there any such dates
+    # in the OAC catalog? It's literally impossible to know
+    # without reference another catalog.
+    #
+    # And by the way, we ignore the possibility of fractional
+    # days for the few mm/dd/yyyy dates. It doesn't look
+    # like there are any in the OAC catalog.
+    #
+    # Why can't everyone just agree on one format...
+    split = s.split("/")
+    if int(split[0]) > 31:
+        split[0] = split[0].zfill(4)
+    else:
+        split[2] = split[2].zfill(4)
+
+    # Now we need to handle dates with fractional days,
+    # like '2022/11/11.52435'.
     dt = timedelta(0)
     try:
         # Try to split the string assuming it is yyyy/mm/dd.
         # This will fail if that's not the case, but that just
         # means we don't have to handle fractional days (since
         # no day is even reported).
-        year, month, day = s.split("/")
+        year, month, day = split
 
         # Get the fractional part of the day and turn it into a time span.
         # This will stay zero if the day is an integer. This time span
@@ -120,7 +156,9 @@ def try_parse_date(s: str) -> datetime:
         pass
 
     # Try each possible format.
-    for fmt in ("%Y/%m/%d", "%Y/%m", "%Y"):
+    # Note that mm/dd/yyyy is tried last, to account for the
+    # schema-noncompliant date(s) (I'm looking at you, 'SN1667A').
+    for fmt in ("%Y/%m/%d", "%Y/%m", "%Y", "%m/%d/%Y"):
         try:
             return datetime.strptime(s, fmt) + dt
         except ValueError:
