@@ -9,9 +9,9 @@ class StrTests(unittest.TestCase):
         self.assertEqual(str(HoursMinutesSeconds(1, 0, 0, 0.0)), "+00:00:0.0")
 
     def test_str_degrees(self):
-        self.assertEqual(str(DecimalDegrees(13.5)), "13.5°")
-        self.assertEqual(str(DecimalDegrees(0.0)), "0.0°")
-        self.assertEqual(str(DecimalDegrees(-20.0)), "-20.0°")
+        self.assertEqual(str(DecimalDegrees(13.5)), "13.5")
+        self.assertEqual(str(DecimalDegrees(0.0)), "0.0")
+        self.assertEqual(str(DecimalDegrees(-20.0)), "-20.0")
 
     def test_str_dms(self):
         self.assertEqual(str(DegreesMinutesSeconds(-1, 42, 20, 33.5)), "-42:20:33.5")

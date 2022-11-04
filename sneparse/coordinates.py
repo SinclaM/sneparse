@@ -65,7 +65,7 @@ A base 10 representation of angles, in degrees.
         self.degrees = degrees
 
     def __str__(self) -> str:
-        return f"{self.degrees}°"
+        return str(self.degrees)
 
     def __repr__(self) -> str:
         return self.__str__()

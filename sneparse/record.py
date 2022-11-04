@@ -1,5 +1,5 @@
 from __future__ import annotations # for postponed annotation evaluation
-from typing import Optional, Any
+from typing import Optional, Any, Iterator
 from datetime import (datetime, timedelta)
 
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds, HoursMinutesSeconds
@@ -35,8 +35,12 @@ source={self.source})"""
         return self.name == other.name \
                 and self.right_ascension == other.right_ascension \
                 and self.declination == other.declination \
+                and self.discover_date == other.discover_date \
                 and self.claimed_type == other.claimed_type \
                 and self.source == other.source
+
+    def as_row(self) -> Iterator[str]:
+        return (str(v) for _, v in vars(self).items())
 
     @classmethod
     def from_oac(cls, oac_record: dict[str, Any]) -> SneRecord:
