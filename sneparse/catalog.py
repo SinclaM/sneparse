@@ -22,7 +22,7 @@ class Catalog:
             f.write(f"[{datetime.now().time()}] Parsing files in {dir_path}\n")
             paths = Path(dir_path).glob("**/*.json")
             pool = Pool(num_processes)
-            for r, path in pool.map(helper, paths):
+            for r, path in pool.imap_unordered(helper, paths, 20):
                 self.records.append(r)
                 if len(missing := [k for (k, v) in vars(r).items() if v is None]):
                     f.write(f"[{datetime.now().time()}] Warning: file '{path}' is missing {', '.join(missing)}\n")

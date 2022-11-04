@@ -12,7 +12,7 @@ if __name__ == "__main__":
     N_PROCESSES = 12
 
     c = Catalog()
-    c.parse_dir(Path(ROOT_DIR).joinpath("resources", "oac-data", "sne-2005-2009"), N_PROCESSES)
+    c.parse_dir(Path(ROOT_DIR).joinpath("resources", "oac-data", "sne-2020-2024"), N_PROCESSES)
 
     for record in c.records:
         print(record)
