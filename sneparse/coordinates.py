@@ -1,6 +1,6 @@
 from __future__ import annotations # for postponed annotation evaluation
-from typing import Literal, Tuple
-from math import floor
+from typing import Literal, Tuple, Optional
+from math import (floor, sin, cos, acos, radians, degrees)
 
 HMS_HOURS_PER_DEGREE = 24.0 / 360.0
 HMS_MINUTES_PER_HOUR = 60
@@ -13,9 +13,11 @@ FLOAT_EPSILON = 1e-6
 
 class HoursMinutesSeconds():
     """
-The unit of right ascension. Angles are broken into `hours` (0-24), `minutes` (0-59),\
- and `seconds` (0.0 - 59.999...). An angle in hours:minutes:seconds also has an associated\
- `sign` (+ or -).
+    The unit of right ascension.
+
+    Angles are broken into `hours` (0-24), `minutes` (0-59), and
+    `seconds` (0.0 - 59.999...). An angle in hours:minutes:seconds 
+    also has an associated `sign` (+ or -).
     """
     def __init__(self, sign: Literal[-1, 1], hours: int, minutes: int, seconds: float) -> None:
         self.sign    = sign
@@ -59,7 +61,7 @@ The unit of right ascension. Angles are broken into `hours` (0-24), `minutes` (0
 
 class DecimalDegrees():
     """
-A base 10 representation of angles, in degrees.
+    A base 10 representation of angles, in degrees.
     """
     def __init__(self, degrees: float) -> None:
         self.degrees = degrees
@@ -96,9 +98,11 @@ A base 10 representation of angles, in degrees.
 
 class DegreesMinutesSeconds():
     """
-The unit of declination. Angles are broken into `degrees` (0-359), `minutes` (0-59),\
- and `seconds` (0.0 - 59.999...). An angle in degrees:minutes:seconds also has an associated\
- `sign` (+ or -).
+    The unit of declination.
+
+    Angles are broken into `degrees` (0-359), `minutes` (0-59), and
+    `seconds` (0.0 - 59.999...). An angle in degrees:minutes:seconds
+    also has an associated `sign` (+ or -).
     """
     def __init__(self, sign: Literal[-1, 1], degrees: int, minutes: int, seconds: float) -> None:
         self.sign    = sign
@@ -208,3 +212,13 @@ def parse_sexagesimal(s: str) -> Tuple[Literal[1, -1], int, int, float]:
         raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
 
     return (sign, hh, mm, ss)
+
+def angular_separation(ra1: DecimalDegrees, d1: DecimalDegrees, ra2: DecimalDegrees, d2: DecimalDegrees) \
+        -> DecimalDegrees:
+    """
+    Calculate the angular separation, in degrees, between the `(ra1, d1)` and `(ra2, d2)`.
+    """
+    return DecimalDegrees(degrees(acos(sin(radians(d1.degrees)) * sin(radians(d2.degrees))
+                                + cos(radians(d1.degrees)) * cos(radians(d2.degrees))
+                                * cos(radians(ra1.degrees) - radians(ra2.degrees)))))
+

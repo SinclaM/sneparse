@@ -1,3 +1,4 @@
+from __future__ import annotations # for postponed annotation evaluation
 from typing import Tuple, Any
 from pathlib import Path
 from datetime import datetime
@@ -56,6 +57,15 @@ class Catalog:
             # Clean up
             pool.close()
             pool.join()
+
+
+    def find_close_pairs(self, angular_separation: float) -> set[Tuple[SneRecord, SneRecord]]:
+        """
+        Find all pairs of records in `self` separated by no more than
+        `angular_separation`. This function is useful for identifying
+        records which likely refer to the same source in the sky.
+        """
+        ...
 
 # This function must be top-leveled defined so that in can be pickled and used
 # with the multiprocessing pool.

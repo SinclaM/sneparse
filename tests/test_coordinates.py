@@ -1,5 +1,6 @@
 import unittest
-from sneparse.coordinates import DecimalDegrees, HoursMinutesSeconds, DegreesMinutesSeconds
+from sneparse.coordinates import (DecimalDegrees, HoursMinutesSeconds,
+                                  DegreesMinutesSeconds, angular_separation)
 
 class StrTests(unittest.TestCase):
     def test_str_hms(self):
@@ -116,6 +117,37 @@ class ParsingTests(unittest.TestCase):
         with self.assertRaises(Exception):
             DegreesMinutesSeconds.from_str("-12.1:03:23.5.")
 
+class DistanceTests(unittest.TestCase):
+    def test_angular_separation(self):
+        self.assertEqual(angular_separation(DecimalDegrees(11.88804),
+                                            DecimalDegrees(-25.288278),
+                                            DecimalDegrees(233.73837),
+                                            DecimalDegrees(23.502639)),
+                         DecimalDegrees(141.99780547))
+
+        self.assertEqual(angular_separation(DecimalDegrees(0.0),
+                                            DecimalDegrees(-90.0),
+                                            DecimalDegrees(0.0),
+                                            DecimalDegrees(90.0)),
+                         DecimalDegrees(180.0))
+
+        self.assertEqual(angular_separation(DecimalDegrees(0.0),
+                                            DecimalDegrees(-90.0),
+                                            DecimalDegrees(360.0),
+                                            DecimalDegrees(90.0)),
+                         DecimalDegrees(180.0))
+
+        self.assertEqual(angular_separation(DecimalDegrees(0.0),
+                                            DecimalDegrees(0.0),
+                                            DecimalDegrees(20.0),
+                                            DecimalDegrees(0.0)),
+                         DecimalDegrees(20.0))
+
+        self.assertEqual(angular_separation(DecimalDegrees(0.0),
+                                            DecimalDegrees(0.0),
+                                            DecimalDegrees(0.0),
+                                            DecimalDegrees(0.0)),
+                         DecimalDegrees(0.0))
 
 if __name__ == "__main__":
     unittest.main()
