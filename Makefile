@@ -9,6 +9,10 @@ install:
 freeze:
 	@pip3 freeze | sed '/^-e.*/d'
 
+# Run all tests
+test:
+	@python3 -m unittest discover tests/
+
 clean:
 	# Delete all __pycache__ folders
 	find . -type d -name __pycache__ -exec rm -r {} \+
