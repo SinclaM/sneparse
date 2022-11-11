@@ -1,8 +1,11 @@
 from __future__ import annotations # for postponed annotation evaluation
-from typing import Optional, Any, Iterator
+from typing import Optional, Any, Iterator, Union
 from datetime import (datetime, timedelta)
 
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds, HoursMinutesSeconds
+
+ra_units  = Optional[Union[float, DecimalDegrees, HoursMinutesSeconds]]
+dec_units = Optional[Union[float, DecimalDegrees, DegreesMinutesSeconds]]
 
 class SneRecord():
     """
@@ -14,11 +17,34 @@ class SneRecord():
     'https://github.com/astrocatalogs/sne-2020-2024/blob/main/ASASSN-20ao.json').
 
     """
-    def __init__(self, name: str, ra: Optional[HoursMinutesSeconds], dec: Optional[DegreesMinutesSeconds],
+    def __init__(self, name: str, ra: ra_units, dec: dec_units,
                  discover_date: Optional[datetime], claimed_type: Optional[str], source: str) -> None:
         self.name            = name
-        self.right_ascension = DecimalDegrees.from_hms(ra) if ra is not None else None
-        self.declination     = DecimalDegrees.from_dms(dec) if dec is not None else None
+
+        match ra:
+            case float():
+                self.right_ascension = DecimalDegrees(ra)
+            case DecimalDegrees():
+                self.right_ascension = ra
+            case HoursMinutesSeconds():
+                self.right_ascension = DecimalDegrees.from_hms(ra)
+            case None:
+                self.right_ascension = None
+            case _:
+                raise Exception("Invalid right ascension")
+
+        match dec:
+            case float():
+                self.declination = DecimalDegrees(dec)
+            case DecimalDegrees():
+                self.declination = dec
+            case DegreesMinutesSeconds():
+                self.declination = DecimalDegrees.from_dms(dec)
+            case None:
+                self.declination = None
+            case _:
+                raise Exception("Invalid declination")
+
         self.discover_date   = discover_date
         self.claimed_type    = claimed_type
         self.source          = source
