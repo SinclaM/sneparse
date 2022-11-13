@@ -1,7 +1,7 @@
 import unittest
 from sneparse.coordinates import (DecimalDegrees, HoursMinutesSeconds,
                                   DegreesMinutesSeconds, angular_separation,
-                                  Cartesian, dist_sqr)
+                                  Cartesian, dist_sqr, angle_between)
 
 class StrTests(unittest.TestCase):
     def test_str_hms(self):
@@ -186,6 +186,19 @@ class DistanceTests(unittest.TestCase):
         p = Cartesian(7.0, 4.0, 3.0)
         q = Cartesian(17.0, 6.0, 2.0)
         self.assertAlmostEqual(dist_sqr(p, q), 105.0)
+
+    def test_angle_between(self):
+        p = Cartesian(1.0, 0.0, 0.0)
+        q = Cartesian(1.0, 0.0, 0.0)
+        self.assertAlmostEqual(angle_between(p, q).degrees, 0.0)
+
+        p = Cartesian(1.0, 0.0, 0.0)
+        q = Cartesian(0.0, 1.0, 0.0)
+        self.assertAlmostEqual(angle_between(p, q).degrees, 90.0)
+
+        p = Cartesian(3.0, 6.0, 1.0)
+        q = Cartesian(-5.0, -9.0, 4.0)
+        self.assertAlmostEqual(angle_between(p, q).degrees, 150.189, places=3)
 
 if __name__ == "__main__":
     unittest.main()

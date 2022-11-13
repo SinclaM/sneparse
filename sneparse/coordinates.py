@@ -216,7 +216,7 @@ def parse_sexagesimal(s: str) -> Tuple[Literal[1, -1], int, int, float]:
 def angular_separation(ra1: DecimalDegrees, d1: DecimalDegrees, ra2: DecimalDegrees, d2: DecimalDegrees) \
         -> DecimalDegrees:
     """
-    Calculate the angular separation, in degrees, between the `(ra1, d1)` and `(ra2, d2)`.
+    Calculates the angular separation, in degrees, between the `(ra1, d1)` and `(ra2, d2)`.
     """
     return DecimalDegrees(degrees(acos(sin(radians(d1.degrees)) * sin(radians(d2.degrees))
                                 + cos(radians(d1.degrees)) * cos(radians(d2.degrees))
@@ -234,7 +234,7 @@ class Cartesian():
     @classmethod
     def from_angular(cls, ra: DecimalDegrees, dec: DecimalDegrees) -> Cartesian:
         """
-        Create a 3D `Cartesian` coordinate on the surface of the unit sphere from
+        Creates a 3D `Cartesian` coordinate on the surface of the unit sphere from
         angular coordinates.
         """
         a = radians(ra.degrees)
@@ -244,9 +244,18 @@ class Cartesian():
 
 def dist_sqr(p: Cartesian, q: Cartesian) -> float:
     """
-    Return the distance squared between two coordinates.
+    Returns the distance squared between two coordinates.
     """
     delta_x = (p.x - q.x)
     delta_y = (p.y - q.y)
     delta_z = (p.z - q.z)
     return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z
+
+def angle_between(p: Cartesian, q: Cartesian) -> DecimalDegrees:
+    """
+    Calculates the angle between the vectors (0, 0, 0) -> p and (0, 0, 0) -> q.
+    """
+    dot_product = p.x * q.x + p.y * q.y + p.z * q.z
+    p_norm = (p.x * p.x + p.y * p.y + p.z * p.z) ** (0.5)
+    q_norm = (q.x * q.x + q.y * q.y + q.z * q.z) ** (0.5)
+    return DecimalDegrees(degrees(acos(dot_product / (p_norm * q_norm))))
