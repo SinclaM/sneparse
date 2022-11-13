@@ -222,3 +222,31 @@ def angular_separation(ra1: DecimalDegrees, d1: DecimalDegrees, ra2: DecimalDegr
                                 + cos(radians(d1.degrees)) * cos(radians(d2.degrees))
                                 * cos(radians(ra1.degrees) - radians(ra2.degrees)))))
 
+class Cartesian():
+    """
+    A cartesian coordinate in 3D space.
+    """
+    def __init__(self, x: float, y: float, z: float) -> None:
+        self.x = x
+        self.y = y
+        self.z = z
+
+    @classmethod
+    def from_angular(cls, ra: DecimalDegrees, dec: DecimalDegrees) -> Cartesian:
+        """
+        Create a 3D `Cartesian` coordinate on the surface of the unit sphere from
+        angular coordinates.
+        """
+        a = radians(ra.degrees)
+        b = radians(dec.degrees)
+        save = cos(b)
+        return Cartesian(save * cos(a), save * sin(a), sin(b))
+
+def dist_sqr(p: Cartesian, q: Cartesian) -> float:
+    """
+    Return the distance squared between two coordinates.
+    """
+    delta_x = (p.x - q.x)
+    delta_y = (p.y - q.y)
+    delta_z = (p.z - q.z)
+    return delta_x * delta_x + delta_y * delta_y + delta_z * delta_z

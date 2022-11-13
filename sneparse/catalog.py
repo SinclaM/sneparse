@@ -88,7 +88,7 @@ class Catalog:
         `angular_separation`. This function is useful for identifying
         records which likely refer to the same source in the sky.
         """
-        out: list[Tuple[SneRecord, SneRecord]] = []
+        pairs: list[Tuple[SneRecord, SneRecord]] = []
         for r1, r2 in combinations(self.records[:1000], r=2):
             if r1.right_ascension is None \
                 or r1.declination is None \
@@ -98,8 +98,8 @@ class Catalog:
 
             if angular_separation(r1.right_ascension, r1.declination,
                                   r2.right_ascension, r2.declination).degrees < threshold:
-                out.append((r1, r2))
-        return out
+                pairs.append((r1, r2))
+        return pairs
 
 # This function must be top-leveled defined so that in can be pickled and used
 # with the multiprocessing pool.

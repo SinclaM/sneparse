@@ -1,6 +1,7 @@
 import unittest
 from sneparse.coordinates import (DecimalDegrees, HoursMinutesSeconds,
-                                  DegreesMinutesSeconds, angular_separation)
+                                  DegreesMinutesSeconds, angular_separation,
+                                  Cartesian, dist_sqr)
 
 class StrTests(unittest.TestCase):
     def test_str_hms(self):
@@ -51,6 +52,26 @@ class ConversionTests(unittest.TestCase):
                          DecimalDegrees(234.3950556))
         self.assertEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 10, 11, 12.3)), 
                          DecimalDegrees(10.18675))
+
+    def test_cartesian_from_angular(self):
+        ra  = DecimalDegrees(26.017046)
+        dec = DecimalDegrees(-15.937469)
+        expected  = Cartesian(0.86412070797, 0.421778115284, -0.27458809793)
+        converted = Cartesian.from_angular(ra, dec)
+
+        self.assertAlmostEqual(expected.x, converted.x)
+        self.assertAlmostEqual(expected.y, converted.y)
+        self.assertAlmostEqual(expected.z, converted.z)
+
+        ra  = DecimalDegrees(278.482530)
+        dec = DecimalDegrees(51.719061)
+        expected  = Cartesian(0.0913837529926, -0.612740943018, 0.78498251346)
+        converted = Cartesian.from_angular(ra, dec)
+
+        self.assertAlmostEqual(expected.x, converted.x)
+        self.assertAlmostEqual(expected.y, converted.y)
+        self.assertAlmostEqual(expected.z, converted.z)
+
 
 class ParsingTests(unittest.TestCase):
     def test_parse_hms(self):
@@ -148,6 +169,23 @@ class DistanceTests(unittest.TestCase):
                                             DecimalDegrees(0.0),
                                             DecimalDegrees(0.0)),
                          DecimalDegrees(0.0))
+
+    def test_dist_sqr(self):
+        p = Cartesian(0.0, 0.0, 0.0)
+        q = Cartesian(0.0, 0.0, 0.0)
+        self.assertAlmostEqual(dist_sqr(p, q), 0.0)
+
+        p = Cartesian(1.0, 0.0, 0.0)
+        q = Cartesian(0.0, 0.0, 0.0)
+        self.assertAlmostEqual(dist_sqr(p, q), 1.0)
+
+        p = Cartesian(1.0, 0.0, 0.0)
+        q = Cartesian(0.0, 1.0, 0.0)
+        self.assertAlmostEqual(dist_sqr(p, q), 2.0)
+
+        p = Cartesian(7.0, 4.0, 3.0)
+        q = Cartesian(17.0, 6.0, 2.0)
+        self.assertAlmostEqual(dist_sqr(p, q), 105.0)
 
 if __name__ == "__main__":
     unittest.main()
