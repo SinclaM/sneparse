@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 from itertools import combinations
+from scipy.spatial import KDTree
 
 # After experimenting with asyncio and threading,
 # multiprocessing gave the best speedup by far for mass parsing,
@@ -12,7 +13,7 @@ from multiprocessing import Pool
 
 from sneparse.definitions import ROOT_DIR
 from sneparse.record import SneRecord
-from sneparse.coordinates import angular_separation
+from sneparse.coordinates import angular_separation, Cartesian, angular_separation_to_distance, DecimalDegrees
 
 
 # Using a chunksize > 1 seems to give a slight performance
@@ -45,10 +46,11 @@ class Catalog:
 
         for line in lines:
             name, ra, dec, date, type_, source = line.split(",")
-            ra    = None if ra    == NULL_STR else float(ra)
-            dec   = None if dec   == NULL_STR else float(dec)
-            date  = None if date  == NULL_STR else datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-            type_ = None if type_ == NULL_STR else type_
+            ra     = None if ra    == NULL_STR else float(ra)
+            dec    = None if dec   == NULL_STR else float(dec)
+            date   = None if date  == NULL_STR else datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+            type_  = None if type_ == NULL_STR else type_
+            source = source.replace("\n", "")
             c.records.append(SneRecord(name, ra, dec, date, type_, source))
 
         return c
@@ -82,24 +84,26 @@ class Catalog:
             pool.join()
 
 
-    def find_close_pairs(self, threshold: float) -> list[Tuple[SneRecord, SneRecord]]:
+    def find_close_pairs(self, threshold: DecimalDegrees) -> list[Tuple[SneRecord, SneRecord]]:
         """
         Find all pairs of records in `self` separated by no more than
-        `angular_separation`. This function is useful for identifying
+        `threshold`. This function is useful for identifying
         records which likely refer to the same source in the sky.
         """
-        pairs: list[Tuple[SneRecord, SneRecord]] = []
-        for r1, r2 in combinations(self.records[:1000], r=2):
-            if r1.right_ascension is None \
-                or r1.declination is None \
-                or r2.right_ascension is None \
-                or r2.declination is None:
-                    continue
 
-            if angular_separation(r1.right_ascension, r1.declination,
-                                  r2.right_ascension, r2.declination).degrees < threshold:
-                pairs.append((r1, r2))
-        return pairs
+        valid_records = [r for r in self.records if r.right_ascension is not None and r.declination is not None]
+
+        distance_threshold = angular_separation_to_distance(threshold)
+
+        # The typechecker will complain on the call to KDTree if `points` is allowed
+        # the type of list[Tuple[ ... ]] because apparently it isn't `ArrayLike` (Why not??).
+        # So we set it to list[Any].
+        points: list[Any] = [((c := Cartesian.from_angular(r.right_ascension, r.declination)).x, c.y, c.z) \
+                for r in valid_records]
+
+
+        kd_tree = KDTree(points)
+        return [(valid_records[i], valid_records[j]) for (i, j) in kd_tree.query_pairs(distance_threshold)]
 
 # This function must be top-leveled defined so that in can be pickled and used
 # with the multiprocessing pool.

@@ -259,3 +259,14 @@ def angle_between(p: Cartesian, q: Cartesian) -> DecimalDegrees:
     p_norm = (p.x * p.x + p.y * p.y + p.z * p.z) ** (0.5)
     q_norm = (q.x * q.x + q.y * q.y + q.z * q.z) ** (0.5)
     return DecimalDegrees(degrees(acos(dot_product / (p_norm * q_norm))))
+
+def angular_separation_to_distance(angle: DecimalDegrees) -> float:
+    """
+    Converts an angular separation (in degrees) to a distance in 3D space.
+    """
+    p = Cartesian.from_angular(DecimalDegrees(0.0), DecimalDegrees(0.0))
+    q = Cartesian.from_angular(angle, DecimalDegrees(0.0))
+    if angle_between(p, q) != angle:
+        raise Exception("WTF")
+
+    return dist_sqr(p, q) ** 0.5

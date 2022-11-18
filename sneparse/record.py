@@ -50,9 +50,7 @@ class SneRecord():
         self.source          = source
 
     def __str__(self) -> str:
-        return f"""SneRecord(name={self.name}, right_ascension={self.right_ascension}, \
-declination={self.declination}, discover_date={self.discover_date}, claimed_type={self.claimed_type}, \
-source={self.source})"""
+        return f"""SneRecord(name={self.name}, right_ascension={self.right_ascension}, declination={self.declination}, discover_date={self.discover_date}, claimed_type={self.claimed_type}, source={self.source})"""
 
     def __repr__(self) -> str:
         return self.__str__()
