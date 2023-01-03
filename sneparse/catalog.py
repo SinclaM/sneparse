@@ -1,19 +1,19 @@
 from __future__ import annotations # for postponed annotation evaluation
-from typing import Tuple, Any, Iterable
+from typing import Tuple, Any, Iterable, Callable
 from pathlib import Path
 from datetime import datetime
 import json
-from itertools import combinations
-from scipy.spatial import KDTree
+import csv
 
 # After experimenting with asyncio and threading,
 # multiprocessing gave the best speedup by far for mass parsing,
 # which I think has to do with Python's GIL.
 from multiprocessing import Pool
+from scipy.spatial import KDTree
 
 from sneparse.definitions import ROOT_DIR
-from sneparse.record import SneRecord
-from sneparse.coordinates import angular_separation, Cartesian, angular_separation_to_distance, DecimalDegrees
+from sneparse.record import SneRecord, Source
+from sneparse.coordinates import Cartesian, angular_separation_to_distance, DecimalDegrees
 
 
 # Using a chunksize > 1 seems to give a slight performance
@@ -48,40 +48,55 @@ class Catalog:
             name, ra, dec, date, type_, source = line.split(",")
             ra     = None if ra    == NULL_STR else float(ra)
             dec    = None if dec   == NULL_STR else float(dec)
-            date   = None if date  == NULL_STR else datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+            date   = None if date  == NULL_STR else datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
             type_  = None if type_ == NULL_STR else type_
             source = source.replace("\n", "")
-            c.records.append(SneRecord(name, ra, dec, date, type_, source))
+            c.records.append(SneRecord(name, ra, dec, date, type_, Source.from_str(source)))
 
         return c
 
-    def parse_dir(self, dir_path: Path, num_processes: int = 12) -> None:
+    def _parse_dir_base(self,
+                        dir_path: Path,
+                        worker: Callable[[Path], Tuple[list[SneRecord], Path]],
+                        pattern: str,
+                        num_processes: int = 12) -> None:
+        with open(self.log_file_path, "a+") as f:
+            f.write(f"[{datetime.now().time()}] Parsing files in {dir_path}\n")
+
+            # Recursively find all json files in the specified directory.
+            paths = Path(dir_path).glob(pattern)
+            pool = Pool(num_processes)
+
+            # Parse each record. Files are split among multiple processes for
+            # an easy speedup to this loop.
+            for records, path in pool.imap_unordered(worker, paths, IMAP_CHUNK_SIZE):
+                self.records.extend(records)
+
+                for r in records:
+                    # If any of the fields in the newly parsed record have a value
+                    # of None, then put a warning in the log file.
+                    if len(missing := [k for (k, v) in vars(r).items() if v is None]):
+                        f.write(f"[{datetime.now().time()}] Warning: file '{path}' is missing {', '.join(missing)}\n")
+
+            # Clean up
+            pool.close()
+            pool.join()
+
+    def parse_dir(self, dir_path: Path, source: Source, num_processes: int = 12) -> None:
         """
         Recursively parse all json files in a directory into a `Catalog`'s
         records. Multiple processes can be used for a perfomance boost on
         a multicore system. For best perfomance, `num_processes` should
         equal the number of cores.
         """
-        with open(self.log_file_path, "a+") as f:
-            f.write(f"[{datetime.now().time()}] Parsing files in {dir_path}\n")
+        match source:
+            case Source.OAC:
+                self._parse_dir_base(dir_path, _parse_dir_oac_worker, "**/*.json", num_processes);
+            case Source.TNS:
+                self._parse_dir_base(dir_path, _parse_dir_tns_worker, "**/*.tsv", num_processes);
+            case _:
+                raise Exception(f"Unknown source: {source}")
 
-            # Recursively find all json files in the specified directory.
-            paths = Path(dir_path).glob("**/*.json")
-            pool = Pool(num_processes)
-
-            # Parse each record. Files are split among multiple processes for
-            # an easy speedup to this loop.
-            for r, path in pool.imap_unordered(worker, paths, IMAP_CHUNK_SIZE):
-                self.records.append(r)
-
-                # If any of the fields in the newly parsed record have a value
-                # of None, then put a warning in the log file.
-                if len(missing := [k for (k, v) in vars(r).items() if v is None]):
-                    f.write(f"[{datetime.now().time()}] Warning: file '{path}' is missing {', '.join(missing)}\n")
-
-            # Clean up
-            pool.close()
-            pool.join()
 
 
     def find_close_pairs(self, threshold: DecimalDegrees) -> list[Tuple[SneRecord, SneRecord]]:
@@ -105,11 +120,11 @@ class Catalog:
         kd_tree = KDTree(points)
         return [(valid_records[i], valid_records[j]) for (i, j) in kd_tree.query_pairs(distance_threshold)]
 
-# This function must be top-leveled defined so that in can be pickled and used
+# This function must be top-level defined so that in can be pickled and used
 # with the multiprocessing pool.
-def worker(path: Path) -> Tuple[SneRecord, Path]:
+def _parse_dir_oac_worker(path: Path) -> Tuple[list[SneRecord], Path]:
     """
-    Create an `SneRecord` from a json file at a given `path`.
+    Create an `SneRecord` from an OAC json file at a given `path`.
     """
     d: dict[str, Any]
     with open(path, "r") as f:
@@ -117,5 +132,15 @@ def worker(path: Path) -> Tuple[SneRecord, Path]:
 
     # The path is passed back in the return value so that the caller can access
     # it for logging purposes. There might be a better way to do this.
-    return (SneRecord.from_oac(d), path)
+    return ([SneRecord.from_oac(d)], path)
+
+# This function must be top-level defined so that in can be pickled and used
+# with the multiprocessing pool.
+def _parse_dir_tns_worker(path: Path) -> Tuple[list[SneRecord], Path]:
+    """
+    Create an `SneRecord` from a TNS tsv file at a given `path`.
+    """
+    with open(path, "r") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        return (SneRecord.from_tns(reader), path)
 

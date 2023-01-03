@@ -1,11 +1,31 @@
 from __future__ import annotations # for postponed annotation evaluation
 from typing import Optional, Any, Iterator, Union
 from datetime import (datetime, timedelta)
+from enum import Enum
+import csv
 
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds, HoursMinutesSeconds
 
 ra_units  = Optional[Union[float, DecimalDegrees, HoursMinutesSeconds]]
 dec_units = Optional[Union[float, DecimalDegrees, DegreesMinutesSeconds]]
+
+# Order of inheritance is important here. See https://stackoverflow.com/a/58608362.
+# With python 3.11 this could simply be a StrEnum.
+class Source(str, Enum):
+    OAC = "OAC"
+    TNS = "TNS"
+
+    @classmethod
+    def from_str(cls, s: str) -> Source:
+        match s:
+            case 'Source.OAC':
+                return Source.OAC
+            case 'Source.TNS':
+                return Source.TNS
+            case _:
+                raise Exception(f"Invalid source: {s}")
+        
+
 
 class SneRecord():
     """
@@ -13,12 +33,12 @@ class SneRecord():
 
     An `SneRecord` includes a `name` (e.g. 'ASASSN-20ao'), a `right_ascension` and
     `declination` in units of decimal degrees, a `claimed_type` (e.g. 'Candidate'),
-    (TODO date), and a `source` (e.g.
-    'https://github.com/astrocatalogs/sne-2020-2024/blob/main/ASASSN-20ao.json').
+    a `discover_date`, and a `source` (e.g. either from the Open Supernova Catalog
+    or the Transient Name Server).
 
     """
     def __init__(self, name: str, ra: ra_units, dec: dec_units,
-                 discover_date: Optional[datetime], claimed_type: Optional[str], source: str) -> None:
+                 discover_date: Optional[datetime], claimed_type: Optional[str], source: Source) -> None:
         self.name            = name
 
         match ra:
@@ -64,7 +84,8 @@ class SneRecord():
                 and self.source == other.source
 
     def as_row(self) -> Iterator[str]:
-        return (str(v) for _, v in vars(self).items())
+        # TODO: rewrite this
+        return (str(v) if not isinstance(v, datetime) else v.strftime("%Y-%m-%d %H:%M:%S.%f") for _, v in vars(self).items())
 
     @classmethod
     def from_oac(cls, oac_record: dict[str, Any]) -> SneRecord:
@@ -113,10 +134,57 @@ class SneRecord():
         except KeyError:
             claimed_type = None
 
-        # TODO: consider having source be a URL passed as an argument
-        #       to this function
-        source = "OAC"
+        source = Source.OAC
         return SneRecord(name, ra, dec, discover_date, claimed_type, source)
+
+    @classmethod
+    def from_tns(cls, reader: csv.DictReader) -> list[SneRecord]:
+        """
+        Create a list of `SneRecord`s from a TNS tsv file.
+        """
+        records: list[SneRecord] = []
+
+        # Skip the first row, which is the header
+        next(reader)
+
+        for row in reader:
+            # There will always be a name
+            name: str = row["Name"]
+
+            # Right ascension does not always exist
+            ra: Optional[HoursMinutesSeconds]
+            try:
+                ra = HoursMinutesSeconds.from_str(row["RA"])
+            except KeyError:
+                ra = None
+
+            # Declination does not always exist
+            dec: Optional[DegreesMinutesSeconds]
+            try:
+                dec = DegreesMinutesSeconds.from_str(row["DEC"])
+            except KeyError:
+                dec = None
+
+            # Discovery date does not always exist
+            discover_date: Optional[datetime]
+            date_str: str
+            try:
+                date_str = row["Discovery Date (UT)"]
+            except KeyError:
+                discover_date = None
+            else:
+                discover_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f")
+
+            # Claimed type does not always exist
+            claimed_type: Optional[str]
+            try:
+                claimed_type= row["Obj. Type"]
+            except KeyError:
+                claimed_type = None
+
+            source = Source.TNS
+            records.append(SneRecord(name, ra, dec, discover_date, claimed_type, source))
+        return records
 
 def try_parse_date(s: str) -> datetime:
     """

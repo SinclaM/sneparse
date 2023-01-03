@@ -11,7 +11,7 @@ NULL_STR = "None"
 
 if __name__ == "__main__":
 
-    with open(Path(ROOT_DIR).joinpath("resources", "oac-sne.csv"), "r") as csvfile:
+    with open(Path(ROOT_DIR).joinpath("resources", "sne.csv"), "r") as csvfile:
         # Skip the first line with the column names
         next(csvfile)
 
