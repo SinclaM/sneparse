@@ -144,8 +144,9 @@ class SneRecord():
         """
         records: list[SneRecord] = []
 
-        # Skip the first row, which is the header
-        next(reader)
+        # Note that the csv reader reads in the first line
+        # when it's instantiated, so the header has already
+        # been skipped
 
         for row in reader:
             # There will always be a name

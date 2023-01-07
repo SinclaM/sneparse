@@ -35,15 +35,10 @@ do
   s2="date_start%5Bdate%5D=$YEAR-$MONTH-01&date_end%5Bdate%5D=$YEAR-$MONTH-31&"
   s3="num_page=$NMAX&page=$PAGENO&format=tsv"
 
-  if [ $PAGENO -ne 0 ]
-  then
-      echo "Sleeping for 10 seconds to reduce request rate ..."
-      sleep 10
-  fi
-
   printf "%d:" $PAGENO
 
   curl -s -o $TFILE "${s0}${s1}${s2}${s3}" -A $USER_AGENT
+  sleep 5
   echo "" >> $TFILE        #supplying \n for last record
   N=$(($(wc -l < $TFILE)-1))    #number of records (header not counted)
 
