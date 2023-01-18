@@ -73,10 +73,14 @@ class Catalog:
                 self.records.extend(records)
 
                 for r in records:
-                    # If any of the fields in the newly parsed record have a value
-                    # of None, then put a warning in the log file.
-                    if len(missing := [k for (k, v) in vars(r).items() if v is None]):
-                        f.write(f"[{datetime.now().time()}] Warning: file '{path}' is missing {', '.join(missing)}\n")
+                    # If any of the fields in the newly parsed record are empty,
+                    # then put a warning in the log file.
+
+                    # TODO: `v is ''` is bad practice. But I've overriden the `__eq__` method
+                    # on some classes which makes `v == ''` fail (which is probably also bad
+                    # practice). Fix this.
+                    if len(missing := [k for (k, v) in vars(r).items() if v is None or v is '']):
+                        f.write(f"[{datetime.now().time()}] Warning: In '{path}','{r.name}' is missing {', '.join(missing)}\n")
 
             # Clean up
             pool.close()

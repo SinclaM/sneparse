@@ -266,7 +266,4 @@ def angular_separation_to_distance(angle: DecimalDegrees) -> float:
     """
     p = Cartesian.from_angular(DecimalDegrees(0.0), DecimalDegrees(0.0))
     q = Cartesian.from_angular(angle, DecimalDegrees(0.0))
-    if angle_between(p, q) != angle:
-        raise Exception("WTF")
-
     return dist_sqr(p, q) ** 0.5
