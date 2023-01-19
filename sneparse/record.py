@@ -3,11 +3,17 @@ from typing import Optional, Any, Iterator, Union
 from datetime import (datetime, timedelta)
 from enum import Enum
 import csv
+import re
 
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds, HoursMinutesSeconds
 
 ra_units  = Optional[Union[float, DecimalDegrees, HoursMinutesSeconds]]
 dec_units = Optional[Union[float, DecimalDegrees, DegreesMinutesSeconds]]
+
+# Recently compiled regex's are automatically cached, so precompiling
+# is only really necessary if we were to use more regex's than fit in the
+# cache. But better safe than sorry.
+OAC_HTML_NAME_RE = re.compile(r'<a id=.*>(.*)</a>');
 
 # Order of inheritance is important here. See https://stackoverflow.com/a/58608362.
 # With python 3.11 this could simply be a StrEnum.
@@ -102,6 +108,13 @@ class SneRecord():
 
         # There will always be a name
         name: str = oac_record["name"]
+
+        # But sometimes (i.e. 5 that I've seen), the name is incorrectly
+        # formatted as an HTML anchor tag, e.g. `"<a id=""iPTF13ebh"">iPTF13ebh</a>"`
+        # If this is the case, we search inside the anchor tag for the actual name.
+        matched = OAC_HTML_NAME_RE.match(name)
+        if matched is not None:
+            name = matched.group(1)
 
         # Right ascension does not always exist
         ra: Optional[HoursMinutesSeconds]
