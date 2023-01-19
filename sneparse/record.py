@@ -85,7 +85,7 @@ class SneRecord():
 
     def as_row(self) -> Iterator[str]:
         # TODO: rewrite this
-        return (str(v) if not isinstance(v, datetime) else v.strftime("%Y-%m-%d %H:%M:%S.%f") for _, v in vars(self).items())
+        return (("" if v is None else str(v)) if not isinstance(v, datetime) else v.strftime("%Y-%m-%d %H:%M:%S.%f") for _, v in vars(self).items())
 
     @classmethod
     def from_oac(cls, oac_record: dict[str, Any]) -> SneRecord:

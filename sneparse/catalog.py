@@ -21,7 +21,7 @@ from sneparse.coordinates import Cartesian, angular_separation_to_distance, Deci
 # The exact value isn't that important.
 IMAP_CHUNK_SIZE = 20
 
-NULL_STR = "None"
+NULL_STR = ""
 
 class Catalog:
     """
@@ -73,13 +73,14 @@ class Catalog:
                 self.records.extend(records)
 
                 for r in records:
+                    # The unclassified TNS data will naturaly be missing a claimed type.
+                    # We set it to `None` instead of the empty string for consistency.
+                    if r.claimed_type == "":
+                        r.claimed_type = None
+
                     # If any of the fields in the newly parsed record are empty,
                     # then put a warning in the log file.
-
-                    # TODO: `v is ''` is bad practice. But I've overriden the `__eq__` method
-                    # on some classes which makes `v == ''` fail (which is probably also bad
-                    # practice). Fix this.
-                    if len(missing := [k for (k, v) in vars(r).items() if v is None or v is '']):
+                    if len(missing := [k for (k, v) in vars(r).items() if v is None]):
                         f.write(f"[{datetime.now().time()}] Warning: In '{path}','{r.name}' is missing {', '.join(missing)}\n")
 
             # Clean up
