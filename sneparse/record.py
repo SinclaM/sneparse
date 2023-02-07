@@ -89,6 +89,9 @@ class SneRecord():
                 and self.claimed_type == other.claimed_type \
                 and self.source == other.source
 
+    def __hash__(self) -> int:
+        return hash(repr(self))
+
     def as_row(self) -> Iterator[str]:
         # TODO: rewrite this
         return (("" if v is None else str(v)) if not isinstance(v, datetime) else v.strftime("%Y-%m-%d %H:%M:%S.%f") for _, v in vars(self).items())

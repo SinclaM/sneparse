@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 from pathlib import Path
 
+from disjoint_set import DisjointSet
+
 from sneparse.definitions import ROOT_DIR
 from sneparse.catalog import Catalog
+from sneparse.record import Source
 from sneparse.coordinates import DecimalDegrees
-
-from datetime import timedelta
 
 NULL_STR = "None"
 
@@ -16,10 +17,18 @@ if __name__ == "__main__":
         next(csvfile)
 
         c = Catalog.from_lines(csvfile)
-        for u, v in c.find_close_pairs(DecimalDegrees(0.38889)):
+        ds = DisjointSet()
+        for u, v in c.find_close_pairs(DecimalDegrees(0.000555556)):
             if u.discover_date is not None and v.discover_date is not None:
-                if u.discover_date == v.discover_date:
-                    print("WOW!!!!!!!")
-            print(u)
-            print(v)
-            print()
+                if abs(u.discover_date - v.discover_date).days < 1:
+                    ds.union(u, v)
+
+        # for s in ds.itersets():
+            # if len(s) > 1:
+                # print("\n".join(str(r) for r in s))
+                # print()
+
+        for s in ds.itersets():
+            if len({r for r in s if r.source == Source.TNS}) > 1:
+                print("\n".join(str(r) for r in s))
+                print()

@@ -21,8 +21,8 @@ if __name__ == "__main__":
 
     with open(Path(ROOT_DIR).joinpath("resources", "sne.csv"), "w") as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(("Name", "Right Ascension", "Declination",
-                          "Discovery Date", "Claimed Type", "Source"))
+        writer.writerow(("name", "ra", "dec",
+                          "discovery_date", "claimed_type", "source"))
         writer.writerows(map(SneRecord.as_row, c.records))
 
     print(f"------{time.time() - start_time}--------")
