@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import URL
+from sqlalchemy import URL, text
 from sqlalchemy import create_engine  
 from sqlalchemy import String, Integer, Float, DateTime
 from sqlalchemy.orm import Mapped
@@ -17,25 +17,24 @@ from sneparse.catalog import Catalog
 from sneparse.coordinates import DecimalDegrees
 from sneparse.definitions import ROOT_DIR
 
+UNCLEANED_TABLE_NAME = "uncleaned"
 
 def paramterize(r: SneRecord) -> dict:
     return {k: (v.degrees if isinstance(v, DecimalDegrees) else v) for k, v in vars(r).items()}
 
-
-# declarative base class
 class Base(DeclarativeBase):
     pass
 
 class SneRecordWrapper():
     name           : Mapped[str]                = mapped_column(String)
-    right_ascension: Mapped[Optional[float]]    = mapped_column(Float, nullable=True)
-    declination    : Mapped[Optional[float]]    = mapped_column(Float, nullable=True)
-    discover_date  : Mapped[Optional[DateTime]] = mapped_column(DateTime, nullable=True)
-    claimed_type   : Mapped[Optional[str]]      = mapped_column(String, nullable=True)
+    right_ascension: Mapped[Optional[float]]    = mapped_column(Float)
+    declination    : Mapped[Optional[float]]    = mapped_column(Float)
+    discover_date  : Mapped[Optional[DateTime]] = mapped_column(DateTime)
+    claimed_type   : Mapped[Optional[str]]      = mapped_column(String)
     source         : Mapped[str]                = mapped_column(String)
 
 class UncleanedRecord(Base, SneRecordWrapper):
-    __tablename__ = "test"
+    __tablename__ = UNCLEANED_TABLE_NAME
     
     pk: Mapped[int] = mapped_column(Integer, primary_key=True)
 
@@ -67,3 +66,13 @@ if __name__ == "__main__":
     for record in c.records:
         session.add(UncleanedRecord(**paramterize(record)))
     session.commit()
+
+    with engine.connect() as con:
+        con.execute(text(
+            f"""
+            CREATE INDEX ON {UNCLEANED_TABLE_NAME} (q3c_ang2ipix(right_ascension, declination));
+            CLUSTER {UNCLEANED_TABLE_NAME}_q3c_ang2ipix_idx ON {UNCLEANED_TABLE_NAME};
+            ANALYZE {UNCLEANED_TABLE_NAME};
+            """
+        ))
+        con.commit()
