@@ -45,7 +45,7 @@ class SneRecord():
     """
     def __init__(self, name: str, ra: ra_units, dec: dec_units,
                  discover_date: Optional[datetime], claimed_type: Optional[str], source: Source) -> None:
-        self.name            = name
+        self.name = name
 
         match ra:
             case float():

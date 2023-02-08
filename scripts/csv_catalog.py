@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 from pathlib import Path
 import time
 import csv
@@ -6,7 +8,6 @@ import csv
 from sneparse.definitions import ROOT_DIR
 from sneparse.catalog import Catalog
 from sneparse.record import SneRecord, Source
-
 
 if __name__ == "__main__":
 
