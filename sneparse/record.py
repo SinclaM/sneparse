@@ -15,9 +15,7 @@ dec_units = Optional[Union[float, DecimalDegrees, DegreesMinutesSeconds]]
 # cache. But better safe than sorry.
 OAC_HTML_NAME_RE = re.compile(r'<a id=.*>(.*)</a>');
 
-# Order of inheritance is important here. See https://stackoverflow.com/a/58608362.
-# With python 3.11 this could simply be a StrEnum.
-class Source(str, Enum):
+class Source(Enum):
     OAC = "OAC"
     TNS = "TNS"
 

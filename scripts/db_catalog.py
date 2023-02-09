@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import cast, Optional
 import os
 from pathlib import Path
+from datetime import datetime
 
 from sqlalchemy import URL, text
 from sqlalchemy import create_engine  
-from sqlalchemy import String, Integer, Float, DateTime
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
@@ -25,17 +26,17 @@ class Base(DeclarativeBase):
     pass
 
 class SneRecordWrapper():
-    name           : Mapped[str]                = mapped_column(String)
-    right_ascension: Mapped[Optional[float]]    = mapped_column(Float)
-    declination    : Mapped[Optional[float]]    = mapped_column(Float)
-    discover_date  : Mapped[Optional[DateTime]] = mapped_column(DateTime)
-    claimed_type   : Mapped[Optional[str]]      = mapped_column(String)
-    source         : Mapped[str]                = mapped_column(String)
+    name           : Mapped[str]
+    right_ascension: Mapped[Optional[float]]
+    declination    : Mapped[Optional[float]]
+    discover_date  : Mapped[Optional[datetime]]
+    claimed_type   : Mapped[Optional[str]]
+    source         : Mapped[Source]
 
 class UncleanedRecord(Base, SneRecordWrapper):
     __tablename__ = UNCLEANED_TABLE_NAME
     
-    pk: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
 
 
 if __name__ == "__main__":

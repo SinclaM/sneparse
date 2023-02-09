@@ -30,11 +30,7 @@ def independent_sets(path: Path) -> Iterator[set[SneRecord]]:
 
 
 if __name__ == "__main__":
-    with (
-        open(Path(ROOT_DIR).joinpath("resources", "cleaned.csv"), "w") as cleaned,
-        open(Path(ROOT_DIR).joinpath("resources", "dupes.csv"), "w") as dupes
-    ):
-        for s in independent_sets(Path(ROOT_DIR).joinpath("resources", "sne.csv")):
-            if len(s) > 1:
-                print("\n".join(str(r) for r in s))
-                print()
+    for s in independent_sets(Path(ROOT_DIR).joinpath("resources", "sne.csv")):
+        if len(s) > 1:
+            print("\n".join(str(r) for r in s))
+            print()
