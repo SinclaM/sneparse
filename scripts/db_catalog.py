@@ -4,7 +4,6 @@ from typing import cast, Optional
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 from sqlalchemy import URL, text
 from sqlalchemy import create_engine  
 from sqlalchemy import String, Integer, Float, DateTime
@@ -40,8 +39,6 @@ class UncleanedRecord(Base, SneRecordWrapper):
 
 
 if __name__ == "__main__":
-    load_dotenv()
-
     engine = create_engine(URL.create(
         drivername=cast(str, os.getenv("DRIVER_NAME")),
         username=os.getenv("USERNAME"),
