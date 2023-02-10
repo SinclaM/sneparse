@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from typing import Iterator, cast
 from pathlib import Path
-import csv
-from io import TextIOWrapper
 
 from disjoint_set import DisjointSet
 
