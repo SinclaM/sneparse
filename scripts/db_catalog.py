@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 
-from sqlalchemy import URL, ForeignKey, text, create_engine, func
+from sqlalchemy import URL, ForeignKey, text, create_engine, func, select
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, aliased
 from disjoint_set import DisjointSet
@@ -93,32 +93,28 @@ if __name__ == "__main__":
 
     # Prepare the table for fast cross matching
     # TODO: can this be done without raw SQL?
-    with engine.connect() as con:
-        con.execute(text(
-            f"""
-            CREATE INDEX ON {MASTER_TABLE_NAME} (q3c_ang2ipix(right_ascension, declination));
-            CLUSTER {MASTER_TABLE_NAME}_q3c_ang2ipix_idx ON {MASTER_TABLE_NAME};
-            ANALYZE {MASTER_TABLE_NAME};
-            """
-        ))
-        con.commit()
+    session.execute(text(
+        f"""
+        CREATE INDEX ON {MASTER_TABLE_NAME} (q3c_ang2ipix(right_ascension, declination));
+        CLUSTER {MASTER_TABLE_NAME}_q3c_ang2ipix_idx ON {MASTER_TABLE_NAME};
+        ANALYZE {MASTER_TABLE_NAME};
+        """
+    ))
+    session.commit()
 
     # Perform the cross matching
     aliasMasterRecord = aliased(MasterRecord)
-
-    # TODO: query is a legacy API as of SQLAlchemy 2.0. Use the newer way
-    # to do this cross matching.
-    cross_matches = session \
-                .query(MasterRecord, aliasMasterRecord) \
-                .filter(func.q3c_join(MasterRecord.right_ascension,
-                                      MasterRecord.declination,
-                                      aliasMasterRecord.right_ascension,
-                                      aliasMasterRecord.declination,
-                                      0.000555556)) \
-                .where((MasterRecord.name < aliasMasterRecord.name) & 
-                       (timedelta(0) < (MasterRecord.discover_date - aliasMasterRecord.discover_date)) &
-                       ((MasterRecord.discover_date - aliasMasterRecord.discover_date) < timedelta(1))) \
-                .all()
+    select_pairs = \
+        select(MasterRecord, aliasMasterRecord) \
+            .filter(func.q3c_join(MasterRecord.right_ascension,
+                                  MasterRecord.declination,
+                                  aliasMasterRecord.right_ascension,
+                                  aliasMasterRecord.declination,
+                                  0.000555556)) \
+            .where((MasterRecord.name < aliasMasterRecord.name) & 
+                   (timedelta(0) < (MasterRecord.discover_date - aliasMasterRecord.discover_date)) &
+                   ((MasterRecord.discover_date - aliasMasterRecord.discover_date) < timedelta(1)))
+    cross_matches = session.execute(select_pairs).all()
 
     # Combine matches into disjoint sets of 2, 3, 4, ...
     ds: DisjointSet[MasterRecord] = DisjointSet()
@@ -126,7 +122,7 @@ if __name__ == "__main__":
         ds.union(u, v)
 
     # Assign a representative member in each set and update the table
-    # so that the other member point to it via the `alias_of` foreign key
+    # so that the other members point to it via the `alias_of` foreign key
     for s in cast(Iterator[set[MasterRecord]], ds.itersets()):
         records = list(s)
 
