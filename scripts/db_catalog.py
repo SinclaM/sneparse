@@ -1,88 +1,19 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-from typing import cast, Optional, Iterator, Any
+from typing import cast, Iterator
 import os
 from pathlib import Path
-from datetime import datetime, timedelta
-from dataclasses import dataclass
+from datetime import timedelta
 
-from sqlalchemy import URL, ForeignKey, text, create_engine, func, select
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.orm import sessionmaker, DeclarativeBase, aliased
-from sqlalchemy.orm.session import Session
+from sqlalchemy import URL, create_engine, func, select
+from sqlalchemy.orm import sessionmaker, aliased
 from disjoint_set import DisjointSet
 
-from sneparse.record import SneRecord, Source
+from sneparse.record import Source
 from sneparse.catalog import Catalog
-from sneparse.coordinates import DecimalDegrees
 from sneparse.definitions import ROOT_DIR
-
-MASTER_TABLE_NAME  = "master"
-CLEANED_TABLE_NAME = "cleaned"
-
-def paramterize(r: SneRecord) -> dict[str, Any]:
-    """
-    Construct the dictionary to be used as the parameters for the __init__ of
-    an SQLAlchemy row class. Essentialy just `vars(r)` but converts the
-    fields of type `DecimalDegrees` to `float`.
-    """
-    return {k: (v.degrees if isinstance(v, DecimalDegrees) else v) for k, v in vars(r).items()}
-
-def prepare_q3c_index(table_name: str, session: Session) -> None:
-    """
-    Prepare `table_name` for fast cross matching
-    """
-    session.execute(text(
-        f"""
-        CREATE INDEX ON {table_name} (q3c_ang2ipix(right_ascension, declination));
-        CLUSTER {table_name}_q3c_ang2ipix_idx ON {table_name};
-        ANALYZE {table_name};
-        """
-    ))
-
-class Base(DeclarativeBase):
-    """
-    Base class for declarative ORM.
-    """
-    pass
-
-@dataclass
-class SneRecordWrapper():
-    """
-    Wrapper around an `SneRecord` to be used with SQLAlchemy. To be inherited
-    by other classes.
-    """
-    name           : Mapped[str]
-    right_ascension: Mapped[Optional[float]]
-    declination    : Mapped[Optional[float]]
-    discover_date  : Mapped[Optional[datetime]]
-    claimed_type   : Mapped[Optional[str]]
-    source         : Mapped[Source]
-
-@dataclass
-class MasterRecord(Base, SneRecordWrapper):
-    """
-    A row in the table of all records.
-    """
-    __tablename__ = MASTER_TABLE_NAME
-    
-    id      : Mapped[int]           = mapped_column(primary_key=True)
-    alias_of: Mapped[Optional[int]] = mapped_column(ForeignKey(f"{MASTER_TABLE_NAME}.id"), default=None)
-
-    # Hash is necessary for when we construct a union-find of `MasterRecord`s
-    def __hash__(self) -> int:
-        return hash(repr(self))
-
-@dataclass
-class CleanedRecord(Base, SneRecordWrapper):
-    """
-    A row in the table of cleaned records (all sources are unique within
-    the granularity of the cross matching).
-    """
-    __tablename__ =  CLEANED_TABLE_NAME
-
-    cleaned_id: Mapped[int]           = mapped_column(primary_key=True)
-    master_id : Mapped[Optional[int]] = mapped_column(ForeignKey(f"{MASTER_TABLE_NAME}.id"), default=None)
+from sneparse.db.tables import *
+from sneparse.db.util import paramterize, prepare_q3c_index
 
 if __name__ == "__main__":
     # Initialize Postgres connection
