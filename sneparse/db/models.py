@@ -16,7 +16,13 @@ class Base(DeclarativeBase):
     """
     pass
 
-@dataclass
+# `kw_only` is needed to force these fields to be the last
+# parameters that appear in the `__init__` of any subclass
+# that redefines one of these fields (e.g. `CleanedRecord`),
+# thus avoiding an error caused by parameters with default
+# values being followed by fields without default values.
+# More info here: https://stackoverflow.com/a/69822584
+@dataclass(kw_only=True)
 class SneRecordWrapper():
     """
     Wrapper around an `SneRecord` to be used with SQLAlchemy. To be inherited
@@ -51,6 +57,10 @@ class CleanedRecord(Base, SneRecordWrapper):
     """
     __tablename__ =  CLEANED_TABLE_NAME
 
-    cleaned_id: Mapped[int]           = mapped_column(primary_key=True)
-    master_id : Mapped[Optional[int]] = mapped_column(ForeignKey(f"{MASTER_TABLE_NAME}.id"), default=None)
+    cleaned_id: Mapped[int] = mapped_column(primary_key=True)
+    master_id : Mapped[int] = mapped_column(ForeignKey(f"{MASTER_TABLE_NAME}.id"))
+
+    # Override inherited ra and dec fields. They are not optional in this table
+    right_ascension: Mapped[float]
+    declination    : Mapped[float]
 

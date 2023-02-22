@@ -12,7 +12,7 @@ from disjoint_set import DisjointSet
 from sneparse.record import Source
 from sneparse.catalog import Catalog
 from sneparse.definitions import ROOT_DIR
-from sneparse.db.tables import *
+from sneparse.db.models import *
 from sneparse.db.util import paramterize, prepare_q3c_index
 from sneparse.util import unwrap
 
@@ -91,15 +91,17 @@ if __name__ == "__main__":
                 record.alias_of = unique_records[rep_idx].id
     session.commit()
     
-    unique_records = [row.tuple()[0] for row in session\
-                                                    .execute(select(MasterRecord)\
-                                                                .filter(MasterRecord.alias_of == None))\
-                                                    .all()]
+    select_reps = select(MasterRecord)\
+                    .filter(MasterRecord.alias_of == None)\
+                    .filter(MasterRecord.right_ascension != None)\
+                    .filter(MasterRecord.declination != None)
+    unique_records = [row.tuple()[0] for row in session.execute(select_reps).all()]
+
     session.add_all(
             CleanedRecord(master_id=record.id,
                           name=record.name,
-                          right_ascension=record.right_ascension,
-                          declination=record.declination,
+                          right_ascension=unwrap(record.right_ascension),
+                          declination=unwrap(record.declination),
                           discover_date=record.discover_date,
                           claimed_type=record.claimed_type,
                           source=record.source) for record in unique_records
