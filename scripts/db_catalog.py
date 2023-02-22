@@ -14,15 +14,16 @@ from sneparse.catalog import Catalog
 from sneparse.definitions import ROOT_DIR
 from sneparse.db.tables import *
 from sneparse.db.util import paramterize, prepare_q3c_index
+from sneparse.util import unwrap
 
 if __name__ == "__main__":
     # Initialize Postgres connection
     engine = create_engine(URL.create(
-        drivername=cast(str, os.getenv("DRIVER_NAME")),
-        username=os.getenv("USERNAME"),
-        password=os.getenv("PASSWORD"),
-        host    =os.getenv("HOST"),
-        database=os.getenv("DATABASE")
+        drivername=unwrap(os.getenv("DRIVER_NAME")),
+        username  =os.getenv("USERNAME"),
+        password  =os.getenv("PASSWORD"),
+        host      =os.getenv("HOST"),
+        database  =os.getenv("DATABASE")
     ))
 
     session_maker = sessionmaker(engine)  
