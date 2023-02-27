@@ -13,6 +13,11 @@ freeze:
 test:
 	@python3 -m unittest discover tests/
 
+# Visualize package dependency tree>
+# `pipdeptree` must be installed and in the $PATH.
+tree:
+	@pipdeptree --python `whereis -q python`
+
 clean:
 	# Delete all __pycache__ folders
 	find . -type d -name __pycache__ -exec rm -r {} \+
