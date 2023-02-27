@@ -16,9 +16,6 @@ import requests
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
-
-PANSTARSS_URL_FORMAT = """https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?ra={ra}&dec={dec}&size={size}\
-&format=fits&red=/rings.v3.skycell/1784/059/rings.v3.skycell.1784.059.stk.{filter_}.unconv.fits"""
  
 def locate_images(ra: float,
                   dec: float,
@@ -42,6 +39,10 @@ def locate_images(ra: float,
  
     Returns an astropy table with the results
     """
+    if dec < -30.0:
+        print( "\tThe PanSTARRS-1 survey has a nominal -30° declination limit.")
+        print(f"\tA request for dec={dec} will likely fail.")
+
     if format_ not in ("jpg","png","fits"):
         raise ValueError("format must be one of jpg, png, fits")
 
@@ -60,7 +61,17 @@ def locate_images(ra: float,
                       files=dict(file=cbuf))
     r.raise_for_status()
 
+    # Check that files have been found for the given position.
+    # We check by asserting there are at least 2 lines in the response text,
+    # since astropy will fail to parse it into a table if only the column names
+    # are present.
+    try:
+        r.text.index("\n")
+    except ValueError as e:
+        raise Exception(f"position ra={ra}, dec={dec} cannot be found in the PanSTARRS-1 survey") from e
+
     tab: Table = Table.read(r.text, format="ascii")
+
     urlbase = f"{fitscut}?size={size}&format={format_}"
     tab["url"] = [f"{urlbase}&ra={ra}&dec={dec}&red={filename}"
                     for (filename, ra, dec) in zip(tab["filename"], tab["ra"], tab["dec"])]
