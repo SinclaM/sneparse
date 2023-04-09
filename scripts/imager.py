@@ -20,6 +20,7 @@ if __name__ == "__main__":
     session_maker = sessionmaker(engine)  
     session = session_maker()
 
+    # TODO: don't sequentially scan entire table
     select_random = select(CleanedRecord.name, CleanedRecord.right_ascension, CleanedRecord.declination)\
                         .order_by(func.random())
     name, ra, dec = unwrap(session.execute(select_random).first()).tuple()

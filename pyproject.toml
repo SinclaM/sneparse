@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sneparse"
+version = "0.1.0"
+description = "Parse supernovae records (from the Open Astronomy Catalog, Transient Name Server, etc.) into Postgresql databases prepared for fast cross-matching"
+authors = [{ name = "Matthew Sinclair", email = "matthewsinclair2024@u.northwestern.edu" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+keywords = ["supernovae", "postgresql", "open-astronomy-catalogs"]
+requires-python = ">=3.9"
+dependencies = [
+    "matplotlib",
+    "astropy",
+    "aplpy",
+    "psycopg2",
+    "sqlalchemy",
+    "requests",
+    "disjoint-set",
+    "pandas"
+]
+
+[project.urls]
+Homepage = "https://github.com/SinclaM/sneparse"
