@@ -2,8 +2,9 @@ import os
 
 from sqlalchemy import URL, create_engine, func, select
 from sqlalchemy.orm import sessionmaker
+import matplotlib.pyplot as plt
 
-from sneparse.imaging import plot_image
+from sneparse.imaging import plot_image_plt, plot_image_apl
 from sneparse.db.models import CleanedRecord
 from sneparse.util import unwrap
  
@@ -24,5 +25,6 @@ if __name__ == "__main__":
     name, ra, dec = unwrap(session.execute(select_random).first()).tuple()
 
     print(f"""Plotting source "{name}" (ra={ra}, dec={dec})""")
+    fig = plot_image_plt(ra, dec)
 
-    plot_image(ra, dec)
+    plt.show()

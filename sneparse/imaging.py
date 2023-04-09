@@ -4,15 +4,21 @@ https://outerspace.stsci.edu/display/PANSTARRS/PS1+Image+Cutout+Service#PS1Image
 """
  
 from io import StringIO
+from os import system
 
 import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
+import matplotlib.lines as lines
 from matplotlib.colors import LogNorm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from astropy.visualization.wcsaxes.core import WCSAxesSubplot
 from astropy.io import fits
 from astropy.utils.data import download_file
 from astropy.table import Table
+from astropy.wcs import WCS
 import requests
+from aplpy import FITSFigure
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
@@ -77,17 +83,57 @@ def locate_images(ra: float,
                     for (filename, ra, dec) in zip(tab["filename"], tab["ra"], tab["dec"])]
     return tab
 
-def plot_image(ra: float,
+def plot_image_plt(ra: float,
+                   dec: float,
+                   size: int = 240,
+                   filters: str = "grizy",
+                   cmap: str = "gray") -> plt.Figure:
+    image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
+                                    show_progress=False)
+    image_data: NDArray
+    image_data, header = fits.getdata(image_file, header=True)
+    image_data -= image_data[np.isfinite(image_data)].min()
+
+    wcs = WCS(header)
+
+    fig: plt.Figure
+    ax : WCSAxesSubplot
+
+    # fig, ax = plt.subplots(subplot_kw={"projection": wcs})
+    fig, ax = plt.subplots()
+
+    crosshair = [
+        lines.Line2D([0.43 * size, 0.47 * size], [size / 2, size / 2], lw=1.5, color='red', axes=ax),
+        lines.Line2D([0.53 * size, 0.57 * size], [size / 2, size / 2], lw=1.5, color='red', axes=ax),
+        lines.Line2D([size / 2, size / 2], [0.43 * size, 0.47 * size], lw=1.5, color='red', axes=ax),
+        lines.Line2D([size / 2, size / 2], [0.53 * size, 0.57 * size], lw=1.5, color='red', axes=ax),
+    ]
+
+    for line in crosshair:
+        ax.add_line(line)
+
+    im = ax.imshow(image_data)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    fig.colorbar(im, cax=cax)
+    return fig
+
+def plot_image_apl(ra: float,
                dec: float,
                size: int = 240,
                filters: str = "grizy",
                cmap: str = "gray") -> None:
     image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
                                     show_progress=False)
+    FILE_NAME = "tmp_plot.png"
 
-    image_data: NDArray = fits.getdata(image_file)
-    image_data -= image_data[np.isfinite(image_data)].min()
+    gc = FITSFigure(image_file)
+    gc.show_grayscale()
 
-    plt.imshow(image_data, cmap=cmap, norm=LogNorm())
-    plt.colorbar()
-    plt.show()
+    gc.tick_labels.set_font(size='small')
+
+    gc.save(FILE_NAME)
+
+    system(f"qlmanage -p {FILE_NAME}")
+    system(f"rm {FILE_NAME}")
