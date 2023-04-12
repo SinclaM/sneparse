@@ -26,6 +26,6 @@ if __name__ == "__main__":
     name, ra, dec = unwrap(session.execute(select_random).first()).tuple()
 
     print(f"""Plotting source "{name}" (ra={ra}, dec={dec})""")
-    fig = plot_image_plt(ra, dec)
+    fig = plot_image_plt(ra, dec, cmap="gray_r")
 
     plt.show()

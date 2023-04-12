@@ -10,6 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
+import matplotlib.ticker
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.visualization.wcsaxes.core import WCSAxesSubplot
@@ -19,6 +20,8 @@ from astropy.table import Table
 from astropy.wcs import WCS
 import requests
 from aplpy import FITSFigure
+
+from sneparse.util import unwrap
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
@@ -92,38 +95,61 @@ def plot_image_plt(ra: float,
                                     show_progress=False)
     image_data: NDArray
     image_data, header = fits.getdata(image_file, header=True)
+
+    # Shift data so that min is 0. Important for normalizations
+    # that expect nonnegative values.
     image_data -= image_data[np.isfinite(image_data)].min()
 
+    # The transfrom that astropy will use to convert pixel coordinates
+    # to ra and dec.
     wcs = WCS(header)
 
     fig: plt.Figure
     ax : WCSAxesSubplot
 
-    # fig, ax = plt.subplots(subplot_kw={"projection": wcs})
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(subplot_kw={"projection": wcs})
 
+
+    # Add a red crosshair to the center of the image
     crosshair = [
-        lines.Line2D([0.43 * size, 0.47 * size], [size / 2, size / 2], lw=1.5, color='red', axes=ax),
-        lines.Line2D([0.53 * size, 0.57 * size], [size / 2, size / 2], lw=1.5, color='red', axes=ax),
-        lines.Line2D([size / 2, size / 2], [0.43 * size, 0.47 * size], lw=1.5, color='red', axes=ax),
-        lines.Line2D([size / 2, size / 2], [0.53 * size, 0.57 * size], lw=1.5, color='red', axes=ax),
+        lines.Line2D([0.43 * size, 0.47 * size], [size / 2, size / 2], lw=1.5, color="red", axes=ax),
+        lines.Line2D([0.53 * size, 0.57 * size], [size / 2, size / 2], lw=1.5, color="red", axes=ax),
+        lines.Line2D([size / 2, size / 2], [0.43 * size, 0.47 * size], lw=1.5, color="red", axes=ax),
+        lines.Line2D([size / 2, size / 2], [0.53 * size, 0.57 * size], lw=1.5, color="red", axes=ax),
     ]
 
     for line in crosshair:
         ax.add_line(line)
 
-    im = ax.imshow(image_data)
 
+    im = ax.imshow(image_data, norm=LogNorm(), cmap=cmap)
+
+    # Set the x and y axis labels to "ra" and "dec"
+    ax.coords[0].set_axislabel("ra")
+    ax.coords[1].set_axislabel("dec")
+
+    # Append a colorbar to the main plot
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='5%', pad=0.05)
+    cax: WCSAxesSubplot = divider.append_axes("right", size="5%", pad=0.10)
+
+    # Don't show any ticks on the x axis of the colorbar
+    cax.coords[0].set_ticks_visible(False)
+    cax.coords[0].set_ticklabel_visible(False)
+
+    # Show ticks for the y axis of the colorbar on the right hand side,
+    # and don't add a "y" label to the colorbar.
+    cax.coords[1].set_ticks_position("r")
+    cax.coords[1].set_ticklabel_position("r")
+    cax.coords[1].set_auto_axislabel(False)
+
     fig.colorbar(im, cax=cax)
     return fig
 
 def plot_image_apl(ra: float,
-               dec: float,
-               size: int = 240,
-               filters: str = "grizy",
-               cmap: str = "gray") -> None:
+                   dec: float,
+                   size: int = 240,
+                   filters: str = "grizy",
+                   cmap: str = "gray") -> None:
     image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
                                     show_progress=False)
     FILE_NAME = "tmp_plot.png"
@@ -131,7 +157,7 @@ def plot_image_apl(ra: float,
     gc = FITSFigure(image_file)
     gc.show_grayscale()
 
-    gc.tick_labels.set_font(size='small')
+    gc.tick_labels.set_font(size="small")
 
     gc.save(FILE_NAME)
 
