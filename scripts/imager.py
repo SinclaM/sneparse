@@ -4,7 +4,7 @@ from sqlalchemy import URL, create_engine, func, select
 from sqlalchemy.orm import sessionmaker
 import matplotlib.pyplot as plt
 
-from sneparse.imaging import plot_image_plt, plot_image_apl
+from sneparse.imaging import plot_image_astropy, plot_image_apl
 from sneparse.db.models import CleanedRecord
 from sneparse.util import unwrap
  
@@ -22,10 +22,13 @@ if __name__ == "__main__":
 
     # TODO: don't sequentially scan entire table
     select_random = select(CleanedRecord.name, CleanedRecord.right_ascension, CleanedRecord.declination)\
-                        .order_by(func.random())
+                        .order_by(func.random())\
+                        .limit(1)
     name, ra, dec = unwrap(session.execute(select_random).first()).tuple()
 
     print(f"""Plotting source "{name}" (ra={ra}, dec={dec})""")
-    fig = plot_image_plt(ra, dec, cmap="gray_r")
+    plot_image_astropy(ra, dec, cmap="gray_r", filters="r")
+
+    plot_image_apl(ra, dec, cmap="gray_r", filters="r")
 
     plt.show()

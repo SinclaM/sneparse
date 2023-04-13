@@ -86,11 +86,11 @@ def locate_images(ra: float,
                     for (filename, ra, dec) in zip(tab["filename"], tab["ra"], tab["dec"])]
     return tab
 
-def plot_image_plt(ra: float,
-                   dec: float,
-                   size: int = 240,
-                   filters: str = "grizy",
-                   cmap: str = "gray") -> plt.Figure:
+def plot_image_astropy(ra: float,
+                       dec: float,
+                       size: int = 240,
+                       filters: str = "grizy",
+                       cmap: str = "gray") -> None:
     image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
                                     show_progress=False)
     image_data: NDArray
@@ -143,7 +143,9 @@ def plot_image_plt(ra: float,
     cax.coords[1].set_auto_axislabel(False)
 
     fig.colorbar(im, cax=cax)
-    return fig
+
+    fig.set_size_inches(8, 8)
+
 
 def plot_image_apl(ra: float,
                    dec: float,
@@ -152,14 +154,48 @@ def plot_image_apl(ra: float,
                    cmap: str = "gray") -> None:
     image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
                                     show_progress=False)
-    FILE_NAME = "tmp_plot.png"
 
-    gc = FITSFigure(image_file)
-    gc.show_grayscale()
+    # Need wcs transfrom to translate pixel coords to ra and dec when
+    # drawing crosshair.
+    image_data, header = fits.getdata(image_file, header=True)
+    wcs = WCS(header)
 
-    gc.tick_labels.set_font(size="small")
+    # Create the figure from the fits data
+    fig = FITSFigure(image_file)
+    fig.show_colorscale(cmap=cmap, stretch="log", vmid=image_data.min())
 
-    gc.save(FILE_NAME)
+    fig.tick_labels.set_font(size="small")
 
-    system(f"qlmanage -p {FILE_NAME}")
-    system(f"rm {FILE_NAME}")
+    #
+    # Coordinates of the endpoints of the crosshair lines
+    #
+
+    # The left segment
+    lx1, ly1 = wcs.all_pix2world(0.43 * size, 0.5 * size, 0)
+    lx2, ly2 = wcs.all_pix2world(0.47 * size, 0.5 * size, 0)
+
+    # Right
+    rx1, ry1 = wcs.all_pix2world(0.53 * size, 0.5 * size, 0)
+    rx2, ry2 = wcs.all_pix2world(0.57 * size, 0.5 * size, 0)
+
+    # Up
+    ux1, uy1 = wcs.all_pix2world(0.5 * size, 0.43 * size, 0)
+    ux2, uy2 = wcs.all_pix2world(0.5 * size, 0.47 * size, 0)
+
+    # Down
+    dx1, dy1 = wcs.all_pix2world(0.5 * size, 0.53 * size, 0)
+    dx2, dy2 = wcs.all_pix2world(0.5 * size, 0.57 * size, 0)
+
+    crosshair = [
+        np.array([[lx1, lx2], [ly1, ly2]]),
+        np.array([[rx1, rx2], [ry1, ry2]]),
+        np.array([[ux1, ux2], [uy1, uy2]]),
+        np.array([[dx1, dx2], [dy1, dy2]]),
+    ]
+
+    # Draw the crosshair
+    fig.show_lines(crosshair, color="r")
+
+    fig.add_colorbar()
+
+    fig._figure.set_size_inches(8, 8)
