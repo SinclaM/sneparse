@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     cross_matches = session.execute(select_pairs).all()
 
-    # Combine matches into disjoint sets of 2, 3, 4, ...
+    # Combine matches into disjoint sets of 1, 2, 3, 4, ...
     ds: DisjointSet[MasterRecord] = DisjointSet()
     for u, v in [row.tuple() for row in cross_matches]:
         ds.union(u, v)

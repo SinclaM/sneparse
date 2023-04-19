@@ -3,14 +3,13 @@ Adapted from
 https://outerspace.stsci.edu/display/PANSTARRS/PS1+Image+Cutout+Service#PS1ImageCutoutService-DownloadaFITSFile
 """
  
+from typing import Tuple, Any
 from io import StringIO
-from os import system
 
 import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
-import matplotlib.ticker
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.visualization.wcsaxes.core import WCSAxesSubplot
@@ -20,8 +19,6 @@ from astropy.table import Table
 from astropy.wcs import WCS
 import requests
 from aplpy import FITSFigure
-
-from sneparse.util import unwrap
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
@@ -86,6 +83,10 @@ def locate_images(ra: float,
                     for (filename, ra, dec) in zip(tab["filename"], tab["ra"], tab["dec"])]
     return tab
 
+def ensure_image(data: NDArray) -> None:
+    if np.isnan(np.nanmin(data)):
+        raise Exception(f"image data is all NaN")
+
 def plot_image_astropy(ra: float,
                        dec: float,
                        size: int = 240,
@@ -96,9 +97,11 @@ def plot_image_astropy(ra: float,
     image_data: NDArray
     image_data, header = fits.getdata(image_file, header=True)
 
+    ensure_image(image_data)
+
     # Shift data so that min is 0. Important for normalizations
     # that expect nonnegative values.
-    image_data -= image_data[np.isfinite(image_data)].min()
+    image_data -= np.nanmin(image_data)
 
     # The transfrom that astropy will use to convert pixel coordinates
     # to ra and dec.
@@ -158,33 +161,49 @@ def plot_image_apl(ra: float,
     # Need wcs transfrom to translate pixel coords to ra and dec when
     # drawing crosshair.
     image_data, header = fits.getdata(image_file, header=True)
+    ensure_image(image_data)
     wcs = WCS(header)
 
     # Create the figure from the fits data
     fig = FITSFigure(image_file)
-    fig.show_colorscale(cmap=cmap, stretch="log", vmid=image_data.min())
+    fig.show_colorscale(cmap=cmap, stretch="log", vmid=np.nanmin(image_data))
 
     fig.tick_labels.set_font(size="small")
 
-    #
-    # Coordinates of the endpoints of the crosshair lines
-    #
+    crosshair = aplpy_crosshair(ra, dec, wcs)
+
+    # Draw the crosshair
+    fig.show_lines(crosshair, color="r")
+
+    fig.add_colorbar()
+
+    fig._figure.set_size_inches(8, 8)
+
+def aplpy_crosshair(ra: float, dec: float, wcs: WCS) -> list[NDArray[Any]]:
+    # The gap_length is how far from the center of the crosshair until each
+    # segment starts.
+    gap_length_ra = wcs.all_pix2world(1, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
+    gap_length_dec = wcs.all_pix2world(0, 1, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
+
+    # The segment length is the length of each of the 4 segments of the crosshair.
+    segment_length_ra = wcs.all_pix2world(2, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
+    segment_length_dec = wcs.all_pix2world(0, 2, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
 
     # The left segment
-    lx1, ly1 = wcs.all_pix2world(0.43 * size, 0.5 * size, 0)
-    lx2, ly2 = wcs.all_pix2world(0.47 * size, 0.5 * size, 0)
+    lx1, lx2 = (ra - gap_length_ra - segment_length_ra, ra - gap_length_ra)
+    ly1, ly2 = (dec, dec)
 
     # Right
-    rx1, ry1 = wcs.all_pix2world(0.53 * size, 0.5 * size, 0)
-    rx2, ry2 = wcs.all_pix2world(0.57 * size, 0.5 * size, 0)
+    rx1, rx2 = (ra + gap_length_ra, ra + gap_length_ra + segment_length_ra)
+    ry1, ry2 = (dec, dec)
 
     # Up
-    ux1, uy1 = wcs.all_pix2world(0.5 * size, 0.43 * size, 0)
-    ux2, uy2 = wcs.all_pix2world(0.5 * size, 0.47 * size, 0)
+    ux1, ux2 = (ra, ra)
+    uy1, uy2 = (dec + gap_length_dec, dec + gap_length_dec + segment_length_dec)
 
     # Down
-    dx1, dy1 = wcs.all_pix2world(0.5 * size, 0.53 * size, 0)
-    dx2, dy2 = wcs.all_pix2world(0.5 * size, 0.57 * size, 0)
+    dx1, dx2 = (ra, ra)
+    dy1, dy2 = (dec - gap_length_dec - segment_length_dec, dec - gap_length_dec)
 
     crosshair = [
         np.array([[lx1, lx2], [ly1, ly2]]),
@@ -193,9 +212,37 @@ def plot_image_apl(ra: float,
         np.array([[dx1, dx2], [dy1, dy2]]),
     ]
 
-    # Draw the crosshair
-    fig.show_lines(crosshair, color="r")
+    return crosshair
+
+def plot_group(group: list[Tuple[float, float]],
+               size: int = 240,
+               filters: str = "grizy",
+               cmap: str = "gray") -> FITSFigure:
+    ra, dec = group[0]
+    image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
+                                    show_progress=False)
+
+    # Need wcs transfrom to translate pixel coords to ra and dec when
+    # drawing crosshair.
+    image_data, header = fits.getdata(image_file, header=True)
+    ensure_image(image_data)
+    wcs = WCS(header)
+
+    # Create the figure from the fits data
+    fig = FITSFigure(image_file)
+    fig.show_colorscale(cmap=cmap, stretch="log", vmid=np.nanmin(image_data))
+
+    fig.tick_labels.set_font(size="small")
+
+    # Colors for each crosshair. Start with red ("r"), then green, blue, and
+    # cyan. The 5th crosshair and beyond will fall back to cyan.
+    colors = "rgbc"
+    for i, (ra, dec) in enumerate(group):
+        print(ra, dec)
+        crosshair = aplpy_crosshair(ra, dec, wcs)
+        fig.show_lines(crosshair, color=colors[min(i, len(colors) - 1)])
 
     fig.add_colorbar()
 
     fig._figure.set_size_inches(8, 8)
+    return fig
