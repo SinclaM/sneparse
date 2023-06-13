@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 
 from sqlalchemy import URL, create_engine, func, select
