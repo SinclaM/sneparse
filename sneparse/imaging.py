@@ -45,9 +45,9 @@ def locate_images(ra: float,
  
     Returns an astropy table with the results
     """
-    if dec < -30.0:
-        print( "\tThe PanSTARRS-1 survey has a nominal -30° declination limit.")
-        print(f"\tA request for dec={dec} will likely fail.")
+    # if dec < -30.0:
+    #     print( "\tThe PanSTARRS-1 survey has a nominal -30° declination limit.")
+    #     print(f"\tA request for dec={dec} will likely fail.")
 
     if format_ not in ("jpg","png","fits"):
         raise ValueError("format must be one of jpg, png, fits")
@@ -71,10 +71,7 @@ def locate_images(ra: float,
     # We check by asserting there are at least 2 lines in the response text,
     # since astropy will fail to parse it into a table if only the column names
     # are present.
-    try:
-        r.text.index("\n")
-    except ValueError as e:
-        raise Exception(f"position ra={ra}, dec={dec} cannot be found in the PanSTARRS-1 survey") from e
+    r.text.index("\n")
 
     tab: Table = Table.read(r.text, format="ascii")
 
@@ -83,9 +80,12 @@ def locate_images(ra: float,
                     for (filename, ra, dec) in zip(tab["filename"], tab["ra"], tab["dec"])]
     return tab
 
+class NaNImageError(Exception):
+        pass
+
 def ensure_image(data: NDArray) -> None:
     if np.isnan(np.nanmin(data)):
-        raise Exception(f"image data is all NaN")
+        raise NaNImageError(f"image data is all NaN")
 
 def plot_image_astropy(ra: float,
                        dec: float,
@@ -238,7 +238,6 @@ def plot_group(group: list[Tuple[float, float]],
     # cyan. The 5th crosshair and beyond will fall back to cyan.
     colors = "rgbc"
     for i, (ra, dec) in enumerate(group):
-        print(ra, dec)
         crosshair = aplpy_crosshair(ra, dec, wcs)
         fig.show_lines(crosshair, color=colors[min(i, len(colors) - 1)])
 
