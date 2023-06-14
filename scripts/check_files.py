@@ -25,7 +25,8 @@ if __name__ == "__main__":
     session_maker = sessionmaker(engine)  
     with session_maker() as session:
         vlass_dir = Path(ROOT_DIR).joinpath("resources", "vlass_files");
-        names = [line.strip() for f in vlass_dir.glob("*.txt") for line in f.open()]
+        with vlass_dir.joinpath("all.csv").open() as f:
+            names = [line for line in f]
 
         # Create a temporary table in the database to hold the names from the file.
         temp_table_name = "temp_file_names"
@@ -35,7 +36,7 @@ if __name__ == "__main__":
 
         # Create a CSV buffer in-memory for the table insertion.
         csv_buffer = StringIO()
-        csv_buffer.writelines(name + '\n' for name in names)
+        csv_buffer.writelines(names)
         csv_buffer.seek(0)
 
         # Copy the observed file names into the temporary table.
