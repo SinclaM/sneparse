@@ -9,6 +9,7 @@ from sqlalchemy import URL, create_engine, func, select
 from sqlalchemy.orm import sessionmaker, aliased
 from disjoint_set import DisjointSet
 
+from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds
 from sneparse.record import Source
 from sneparse.catalog import Catalog
 from sneparse.definitions import ROOT_DIR
@@ -52,6 +53,8 @@ if __name__ == "__main__":
     session.commit()
 
     # Perform the cross matching
+    separation = DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 5)).degrees
+
     # TODO: clean up the `where` clause. There has to be a simpler
     # way to get make a comparison with the absolute value of an interval.
     aliasMasterRecord = aliased(MasterRecord)
@@ -61,7 +64,7 @@ if __name__ == "__main__":
                                   MasterRecord.declination,
                                   aliasMasterRecord.right_ascension,
                                   aliasMasterRecord.declination,
-                                  0.000555556)) \
+                                  separation)) \
             .where((MasterRecord.name < aliasMasterRecord.name) 
                       & (((timedelta(0) <= (MasterRecord.discover_date - aliasMasterRecord.discover_date))
                               & ((MasterRecord.discover_date - aliasMasterRecord.discover_date) < timedelta(1)))
