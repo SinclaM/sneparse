@@ -57,7 +57,10 @@ class HoursMinutesSeconds():
 
     @classmethod
     def from_str(cls, s: str) -> HoursMinutesSeconds:
-        return HoursMinutesSeconds(*parse_sexagesimal(s))
+        if ":" not in s:
+            return HoursMinutesSeconds.from_decimal_degrees(DecimalDegrees(float(s)))
+        else:
+            return HoursMinutesSeconds(*parse_sexagesimal(s))
 
 class DecimalDegrees():
     """
@@ -142,11 +145,14 @@ class DegreesMinutesSeconds():
 
     @classmethod
     def from_str(cls, s: str) -> DegreesMinutesSeconds:
-        return DegreesMinutesSeconds(*parse_sexagesimal(s))
+        if ":" not in s:
+            return DegreesMinutesSeconds.from_decimal_degrees(DecimalDegrees(float(s)))
+        else:
+            return DegreesMinutesSeconds(*parse_sexagesimal(s))
 
 def parse_sexagesimal(s: str) -> Tuple[Literal[1, -1], int, int, float]:
     split = s.split(":")
-    hh: int
+    hhdd: int
     mm: int
     ss: float
     if len(split) == 3:
@@ -164,9 +170,9 @@ def parse_sexagesimal(s: str) -> Tuple[Literal[1, -1], int, int, float]:
             elif sign == "-":
                 sign = -1
             else:
-                raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+                raise Exception(f"Unable to parse {s} as sexagesimal")
 
-        hh = int(first)
+        hhdd = int(first)
         mm = int(second)
         ss = float(third)
     elif len(split) == 2:
@@ -184,34 +190,15 @@ def parse_sexagesimal(s: str) -> Tuple[Literal[1, -1], int, int, float]:
             elif sign == "-":
                 sign = -1
             else:
-                raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+                raise Exception(f"Unable to parse {s} as sexagesimal")
 
-        hh = 0
-        mm = int(first)
-        ss = float(second)
-    elif len(split) == 1:
-        first = split[0]
-        # if the + or - is excluded, the sign is positive
-        if first[0].isdigit():
-            sign = 1
-        # otherwise get the sign from the first character
-        else:
-            sign = first[0]
-            first = first[1:]
-            if sign == "+":
-                sign = 1
-            elif sign == "-":
-                sign = -1
-            else:
-                raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
-        hh = 0
-        mm = 0
-        ss = float(first)
-
+        hhdd = int(first)
+        mm = int(float(second))
+        ss = (float(second) - mm) * 60
     else:
-        raise Exception(f"Unable to parse {s} into HoursMinutesSeconds object")
+        raise Exception(f"Unable to parse {s} as sexagesimal")
 
-    return (sign, hh, mm, ss)
+    return (sign, hhdd, mm, ss)
 
 def angular_separation(ra1: DecimalDegrees, d1: DecimalDegrees, ra2: DecimalDegrees, d2: DecimalDegrees) \
         -> DecimalDegrees:
