@@ -3,7 +3,7 @@ Adapted from
 https://outerspace.stsci.edu/display/PANSTARRS/PS1+Image+Cutout+Service#PS1ImageCutoutService-DownloadaFITSFile
 """
  
-from typing import Tuple, Any
+from typing import Tuple, Any, Optional
 from io import StringIO
 
 import numpy as np
@@ -125,11 +125,11 @@ def plot_image_astropy(ra: float,
         ax.add_line(line)
 
 
-    im = ax.imshow(image_data, norm=LogNorm(), cmap=cmap)
+    im = ax.imshow(image_data, norm=LogNorm(), cmap=cmap) # type: ignore
 
     # Set the x and y axis labels to "ra" and "dec"
-    ax.coords[0].set_axislabel("ra")
-    ax.coords[1].set_axislabel("dec")
+    ax.coords[0].set_axislabel("RA (J2000)")
+    ax.coords[1].set_axislabel("Dec (J2000)")
 
     # Append a colorbar to the main plot
     divider = make_axes_locatable(ax)
@@ -152,9 +152,10 @@ def plot_image_astropy(ra: float,
 
 def plot_image_apl(ra: float,
                    dec: float,
+                   name: Optional[str] = None,
                    size: int = 240,
                    filters: str = "grizy",
-                   cmap: str = "gray") -> None:
+                   cmap: str = "gray") -> FITSFigure:
     image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
                                     show_progress=False)
 
@@ -173,25 +174,25 @@ def plot_image_apl(ra: float,
     crosshair = aplpy_crosshair(ra, dec, wcs)
 
     # Draw the crosshair
-    fig.show_lines(crosshair, color="r")
+    fig.show_lines(crosshair, color="red")
+
+    if name is not None:
+        fig.add_label(0.6, 0.53, name, relative=True, layer="source", color="red")
 
     fig.add_colorbar()
 
     fig._figure.set_size_inches(8, 8)
+    return fig
 
 def aplpy_crosshair(ra: float, dec: float, wcs: WCS) -> list[NDArray[Any]]:
     # The gap_length is how far from the center of the crosshair until each
     # segment starts.
-    gap_length_ra = wcs.all_pix2world(1, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
-    gap_length_dec = wcs.all_pix2world(0, 1, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
+    gap_length_ra = wcs.all_pix2world(6, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
+    gap_length_dec = wcs.all_pix2world(0, 6, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
 
     # The segment length is the length of each of the 4 segments of the crosshair.
-    segment_length_ra = wcs.all_pix2world(2, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
-    segment_length_dec = wcs.all_pix2world(0, 2, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
-
-    # The left segment
-    lx1, lx2 = (ra - gap_length_ra - segment_length_ra, ra - gap_length_ra)
-    ly1, ly2 = (dec, dec)
+    segment_length_ra = wcs.all_pix2world(12, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
+    segment_length_dec = wcs.all_pix2world(0, 12, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
 
     # Right
     rx1, rx2 = (ra + gap_length_ra, ra + gap_length_ra + segment_length_ra)
@@ -201,15 +202,9 @@ def aplpy_crosshair(ra: float, dec: float, wcs: WCS) -> list[NDArray[Any]]:
     ux1, ux2 = (ra, ra)
     uy1, uy2 = (dec + gap_length_dec, dec + gap_length_dec + segment_length_dec)
 
-    # Down
-    dx1, dx2 = (ra, ra)
-    dy1, dy2 = (dec - gap_length_dec - segment_length_dec, dec - gap_length_dec)
-
     crosshair = [
-        np.array([[lx1, lx2], [ly1, ly2]]),
         np.array([[rx1, rx2], [ry1, ry2]]),
-        np.array([[ux1, ux2], [uy1, uy2]]),
-        np.array([[dx1, dx2], [dy1, dy2]]),
+        np.array([[ux1, ux2], [uy1, uy2]])
     ]
 
     return crosshair

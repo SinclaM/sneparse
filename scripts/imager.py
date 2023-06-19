@@ -1,35 +1,28 @@
 #!/usr/bin/env python3
-import os
+from typing import Tuple
+from csv import DictReader
 
-from sqlalchemy import URL, create_engine, func, select
-from sqlalchemy.orm import sessionmaker
-import matplotlib.pyplot as plt
+from aplpy.core import log
 
+from sneparse.definitions import ROOT_DIR
 from sneparse.imaging import plot_image_astropy, plot_image_apl
-from sneparse.db.models import CleanedRecord
-from sneparse.util import unwrap
  
 if __name__ == "__main__":
-    engine = create_engine(URL.create(
-        drivername=unwrap(os.getenv("DRIVER_NAME")),
-        username  =os.getenv("ASTRO_USERNAME"),
-        password  =os.getenv("ASTRO_PASSWORD"),
-        host      =os.getenv("ASTRO_HOST"),
-        database  =os.getenv("ASTRO_DATABASE")
-    ))
+    sne: dict[str, Tuple[float, float]] = {}
+    with ROOT_DIR.joinpath("resources", "cross_matches.csv").open() as f:
+        for row in DictReader(f):
+            if row["name"] not in sne:
+                sne[row["name"]] = (float(row["right_ascension"]), float(row["declination"]))
 
-    session_maker = sessionmaker(engine)  
-    session = session_maker()
+    # Turn off aplpy logs
+    log.disabled = True
 
-    # TODO: don't sequentially scan entire table
-    select_random = select(CleanedRecord.name, CleanedRecord.right_ascension, CleanedRecord.declination)\
-                        .order_by(func.random())\
-                        .limit(1)
-    name, ra, dec = unwrap(session.execute(select_random).first()).tuple()
-
-    print(f"""Plotting source "{name}" (ra={ra}, dec={dec})""")
-    plot_image_astropy(ra, dec, cmap="gray_r", filters="r")
-
-    plot_image_apl(ra, dec, cmap="gray_r", filters="r")
-
-    plt.show()
+    for (name, (ra, dec)) in sne.items():
+        try:
+            fig = plot_image_apl(ra, dec, name=name, cmap="gray_r", filters="r")
+            fig.save(ROOT_DIR.joinpath("resources", "images", "cross_matches", name))
+            fig.close()
+            print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}).")
+        except Exception as e:
+            print(e)
+            print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}).")
