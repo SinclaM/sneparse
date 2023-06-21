@@ -153,17 +153,11 @@ class BulkParsingTests(unittest.TestCase):
 
         for (ra, dec) in tqdm(angles):
             with self.subTest(ra=ra, dec=dec):
-                h, m, s = Angle(f"{ra} h").hms
-                expected = h / HMS_HOURS_PER_DEGREE \
-                           + m / (HMS_MINUTES_PER_HOUR * HMS_HOURS_PER_DEGREE) \
-                           + s / (HMS_SECONDS_PER_MINUTE * HMS_MINUTES_PER_HOUR * HMS_HOURS_PER_DEGREE)
-                self.assertAlmostEqual(DecimalDegrees.from_hms(HoursMinutesSeconds.from_str(ra)).degrees, expected)
+                self.assertAlmostEqual(DecimalDegrees.from_hms(HoursMinutesSeconds.from_str(ra)).degrees,
+                                       Angle(f"{ra} h").degree)
 
-                d, m, s = Angle(f"{dec} d").dms
-                expected = d  \
-                           + m / (DMS_MINUTES_PER_DEGREE ) \
-                           + s / (DMS_SECONDS_PER_MINUTE * DMS_MINUTES_PER_DEGREE)
-                self.assertAlmostEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds.from_str(dec)).degrees, expected)
+                self.assertAlmostEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds.from_str(dec)).degrees,
+                                       Angle(f"{dec} d").degree)
 
 class DistanceTests(unittest.TestCase):
     def test_angular_separation(self):
