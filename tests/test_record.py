@@ -3,7 +3,7 @@ import unittest
 import json
 from datetime import datetime
 
-from sneparse.record import SneRecord
+from sneparse.record import SneRecord, Source
 from sneparse.coordinates import DegreesMinutesSeconds, HoursMinutesSeconds
 
 class RecordParsingTests(unittest.TestCase):
@@ -345,7 +345,7 @@ class RecordParsingTests(unittest.TestCase):
                                    DegreesMinutesSeconds.from_str("-51:30:39.47"),
                                    datetime(2020, 1, 15),
                                    "Candidate",
-                                   "OAC")
+                                   Source.OAC)
                          )
 
 if __name__ == "__main__":

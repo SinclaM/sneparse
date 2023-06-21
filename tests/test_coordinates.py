@@ -82,9 +82,9 @@ class ParsingTests(unittest.TestCase):
         # missing sign is equivalent to positive
         self.assertEqual(HoursMinutesSeconds.from_str("12:03:23.5"), HoursMinutesSeconds(1, 12, 3, 23.5))
 
-        self.assertEqual(HoursMinutesSeconds.from_str("12:023.5"), HoursMinutesSeconds(1, 0, 12, 23.5))
+        self.assertEqual(HoursMinutesSeconds.from_str("12:023.5"), HoursMinutesSeconds(1, 12, 23, 30))
 
-        self.assertEqual(HoursMinutesSeconds.from_str("023.5"), HoursMinutesSeconds(1, 0, 0, 23.5))
+        self.assertEqual(HoursMinutesSeconds.from_str("023.5"), HoursMinutesSeconds(1, 23, 30, 0))
 
         # empty input
         with self.assertRaises(Exception):
@@ -114,9 +114,9 @@ class ParsingTests(unittest.TestCase):
 
         self.assertEqual(DegreesMinutesSeconds.from_str("-00:10:59.7"), DegreesMinutesSeconds(-1, 0, 10, 59.7))
 
-        self.assertEqual(DegreesMinutesSeconds.from_str("12:023.5"), DegreesMinutesSeconds(1, 0, 12, 23.5))
+        self.assertEqual(DegreesMinutesSeconds.from_str("12:023.5"), DegreesMinutesSeconds(1, 12, 23, 30))
 
-        self.assertEqual(DegreesMinutesSeconds.from_str("023.5"), DegreesMinutesSeconds(1, 0, 0, 23.5))
+        self.assertEqual(DegreesMinutesSeconds.from_str("023.5"), DegreesMinutesSeconds(1, 23, 30, 0))
 
         # empty input
         with self.assertRaises(Exception):

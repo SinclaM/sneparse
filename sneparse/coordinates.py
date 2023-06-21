@@ -39,6 +39,19 @@ class HoursMinutesSeconds():
                 and abs(self.seconds - other.seconds) < FLOAT_EPSILON
 
     @classmethod
+    def from_decimal_hours(cls, h: float) -> HoursMinutesSeconds:
+        """
+        Converts fractional hours into `HoursMinutesSeconds`.
+        """
+        hours   = floor(h)
+        h -= hours
+        minutes = floor(HMS_MINUTES_PER_HOUR * h)
+        h -= minutes / (HMS_MINUTES_PER_HOUR)
+        seconds = HMS_MINUTES_PER_HOUR * HMS_SECONDS_PER_MINUTE * h
+
+        return HoursMinutesSeconds(1, hours, minutes, seconds)
+
+    @classmethod
     def from_decimal_degrees(cls, d: DecimalDegrees) -> HoursMinutesSeconds:
         """
         Converts a `DecimalDegrees` value to `HoursMinutesSeconds`.
@@ -58,7 +71,7 @@ class HoursMinutesSeconds():
     @classmethod
     def from_str(cls, s: str) -> HoursMinutesSeconds:
         if ":" not in s:
-            return HoursMinutesSeconds.from_decimal_degrees(DecimalDegrees(float(s)))
+            return HoursMinutesSeconds.from_decimal_hours(float(s))
         else:
             return HoursMinutesSeconds(*parse_sexagesimal(s))
 
