@@ -27,7 +27,8 @@ dependencies = [
     "requests",
     "disjoint-set",
     "pandas",
-    "numpy"
+    "numpy",
+    "tqdm"
 ]
 
 [project.urls]
