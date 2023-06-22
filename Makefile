@@ -23,4 +23,4 @@ clean:
 	find . -type d -name __pycache__ -exec rm -r {} \+
 	
 	# Delete logs
-	$(RM) -f sneparse/resources/logs/*.txt
+	$(RM) -f resources/logs/*.txt

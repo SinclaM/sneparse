@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import csv
 
-from sneparse.definitions import ROOT_DIR
+from sneparse import RESOURCES
 from sneparse.catalog import Catalog
 from sneparse.record import SneRecord, Source
 
@@ -17,10 +17,10 @@ if __name__ == "__main__":
 
     c = Catalog()
 
-    c.parse_dir(Path(ROOT_DIR).joinpath("resources", "oac-data"), Source.OAC, N_PROCESSES)
-    c.parse_dir(Path(ROOT_DIR).joinpath("resources", "tns-data"), Source.TNS, N_PROCESSES)
+    c.parse_dir(RESOURCES.joinpath("oac-data"), Source.OAC, N_PROCESSES)
+    c.parse_dir(RESOURCES.joinpath("tns-data"), Source.TNS, N_PROCESSES)
 
-    with open(Path(ROOT_DIR).joinpath("resources", "sne.csv"), "w") as csvfile:
+    with open(RESOURCES.joinpath("sne.csv"), "w") as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow(("name", "ra", "dec",
                           "discovery_date", "claimed_type", "source"))

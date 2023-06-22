@@ -8,7 +8,7 @@ from pprint import pprint
 from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from sneparse.definitions import ROOT_DIR
+from sneparse import RESOURCES
 from sneparse.util import unwrap
 
 if __name__ == "__main__":
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     session_maker = sessionmaker(engine)  
     with session_maker() as session:
-        vlass_dir = Path(ROOT_DIR).joinpath("resources", "vlass_files");
+        vlass_dir = RESOURCES.joinpath("vlass_files");
         with vlass_dir.joinpath("all.csv").open() as f:
             names = [line for line in f]
 

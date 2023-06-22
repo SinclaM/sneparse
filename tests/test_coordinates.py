@@ -6,7 +6,6 @@ import unittest
 from tqdm import tqdm
 from astropy.coordinates import Angle
 
-from sneparse.definitions import ROOT_DIR
 from sneparse.coordinates import *
 
 class StrTests(unittest.TestCase):

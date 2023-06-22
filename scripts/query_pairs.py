@@ -4,7 +4,7 @@ from pathlib import Path
 
 from disjoint_set import DisjointSet
 
-from sneparse.definitions import ROOT_DIR
+from sneparse import RESOURCES
 from sneparse.catalog import Catalog
 from sneparse.record import SneRecord
 from sneparse.coordinates import DecimalDegrees
@@ -28,7 +28,7 @@ def independent_sets(path: Path) -> Iterator[set[SneRecord]]:
 
 
 if __name__ == "__main__":
-    for s in independent_sets(Path(ROOT_DIR).joinpath("resources", "sne.csv")):
+    for s in independent_sets(RESOURCES.joinpath("sne.csv")):
         if len(s) > 1:
             print("\n".join(str(r) for r in s))
             print()

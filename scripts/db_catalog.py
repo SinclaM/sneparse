@@ -9,10 +9,10 @@ from sqlalchemy import URL, create_engine, func, select
 from sqlalchemy.orm import sessionmaker, aliased
 from disjoint_set import DisjointSet
 
+from sneparse import RESOURCES
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds
 from sneparse.record import Source
 from sneparse.catalog import Catalog
-from sneparse.definitions import ROOT_DIR
 from sneparse.db.models import *
 from sneparse.db.util import paramterize, prepare_q3c_index
 from sneparse.util import unwrap
@@ -41,8 +41,8 @@ if __name__ == "__main__":
     # only to add it all to the database and never use it again? It would
     # probably be better to insert right away after parsing.
     N_PROCESSES = 12
-    c.parse_dir(Path(ROOT_DIR).joinpath("resources", "oac-data"), Source.OAC, N_PROCESSES)
-    c.parse_dir(Path(ROOT_DIR).joinpath("resources", "tns-data"), Source.TNS, N_PROCESSES)
+    c.parse_dir(RESOURCES.joinpath("oac-data"), Source.OAC, N_PROCESSES)
+    c.parse_dir(RESOURCES.joinpath("tns-data"), Source.TNS, N_PROCESSES)
 
     # Insert records into master table
     for record in c.records:

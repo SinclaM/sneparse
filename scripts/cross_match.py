@@ -7,7 +7,7 @@ from io import StringIO
 from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from sneparse.definitions import ROOT_DIR
+from sneparse import RESOURCES
 from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds
 from sneparse.db.models import CLEANED_TABLE_NAME
 from sneparse.util import unwrap
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         session.connection().connection.cursor().copy_expert(copy_cross_matches, cross_matches_buffer)
         cross_matches_buffer.seek(0)
 
-    output_file = ROOT_DIR.joinpath("resources", "cross_matches.csv")
+    output_file = RESOURCES.joinpath("cross_matches.csv")
     print(f"Writing results to {output_file}")
     with open(output_file, "w") as csvfile:
         # Save the results to an output file.

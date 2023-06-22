@@ -11,7 +11,7 @@ import csv
 from multiprocessing import Pool
 from scipy.spatial import KDTree
 
-from sneparse.definitions import ROOT_DIR
+from sneparse import RESOURCES
 from sneparse.record import SneRecord, Source
 from sneparse.coordinates import Cartesian, angular_separation_to_distance, DecimalDegrees
 
@@ -29,7 +29,7 @@ class Catalog:
     to record warnings.
     """
     def __init__(self, log_file_name: str = "log.txt") -> None:
-        self.log_file_path = Path(ROOT_DIR).joinpath("resources", "logs", log_file_name)
+        self.log_file_path = RESOURCES.joinpath("logs", log_file_name)
         self.records: list[SneRecord] = []
 
         with open(self.log_file_path, "w+") as f:
