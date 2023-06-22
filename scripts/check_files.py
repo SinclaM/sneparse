@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
         # Create a temporary table in the database to hold the names from the file.
         temp_table_name = "temp_file_names"
-        create_temp_table = text(f"CREATE TEMPORARY TABLE {temp_table_name} (file_name text)")
+        create_temp_table = text(f"CREATE TEMPORARY TABLE {temp_table_name} (file_name text);")
         print(create_temp_table)
         session.execute(create_temp_table)
 
@@ -42,13 +42,13 @@ if __name__ == "__main__":
         # Copy the observed file names into the temporary table.
         # COPY is much much faster than INSERT for bulk data insertion (due to round trip
         # latency).
-        copy_names = f"COPY {temp_table_name} (file_name) FROM STDIN WITH (FORMAT csv)"
+        copy_names = f"COPY {temp_table_name} (file_name) FROM STDIN WITH (FORMAT csv);"
         print(copy_names)
         session.connection().connection.cursor().copy_expert(copy_names, csv_buffer)
 
         # Find which observed files don't exist in the file_definition table.
         check_names = \
-                text(f"SELECT file_name FROM {temp_table_name} EXCEPT SELECT file_name FROM file_definition")
+                text(f"SELECT file_name FROM {temp_table_name} EXCEPT SELECT file_name FROM file_definition;")
         print(check_names)
         result = session.execute(check_names)
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
         # Cleanup: Drop the temporary table. (It should be dropped when the session ends anyway, so
         # this is probably unnecessary).
-        drop_temp_table = text(f"DROP TABLE {temp_table_name}")
+        drop_temp_table = text(f"DROP TABLE {temp_table_name};")
         print(drop_temp_table)
         session.execute(drop_temp_table)
 
