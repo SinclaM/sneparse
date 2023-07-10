@@ -7,6 +7,10 @@ test:
 tree:
 	@pipdeptree --python `whereis -q python`
 
+# Send changes to Quest mirror
+put:
+	rsync -vhra . ${QUEST_PROJECT_DIR} --include='**.gitignore' --exclude='/.git' --filter=':- .gitignore'
+
 clean:
 	# Delete all __pycache__ folders
 	find . -type d -name __pycache__ -exec rm -r {} \+

@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import cast, Iterator
 import os
-from pathlib import Path
 from datetime import timedelta
 
 from sqlalchemy import URL, create_engine, func, select
@@ -21,18 +20,23 @@ if __name__ == "__main__":
     # Initialize Postgres connection
     engine = create_engine(URL.create(
         drivername=unwrap(os.getenv("DRIVER_NAME")),
-        username  =os.getenv("ASTRO_USERNAME"),
-        password  =os.getenv("ASTRO_PASSWORD"),
-        host      =os.getenv("ASTRO_HOST"),
-        database  =os.getenv("ASTRO_DATABASE")
+        username  =os.getenv("VLASS_USERNAME"),
+        password  =os.getenv("VLASS_PASSWORD"),
+        host      =os.getenv("VLASS_HOST"),
+        database  =os.getenv("VLASS_DATABASE"),
+        port      =int(unwrap(os.getenv("VLASS_PORT")))
     ))
 
-    session_maker = sessionmaker(engine)  
+    session_maker = sessionmaker(engine)
     session = session_maker()
 
-    # Drop all the tables that descend from `Base` and re-create them from scratch
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    # Drop and recreate the master and cleaned tables.
+    Base.metadata.drop_all(
+        engine, tables=[MasterRecord.__table__, CleanedRecord.__table__] # type: ignore
+    )
+    Base.metadata.create_all(
+        engine, tables=[MasterRecord.__table__, CleanedRecord.__table__] # type: ignore
+    )
 
     # Create a catalog from data sources
     c = Catalog()

@@ -7,8 +7,8 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import DeclarativeBase
 
-MASTER_TABLE_NAME  = "master"
-CLEANED_TABLE_NAME = "cleaned"
+MASTER_TABLE_NAME  = "oac_tns_all_sne"
+CLEANED_TABLE_NAME = "oac_tns_cleaned_sne"
 
 class Base(DeclarativeBase):
     """
