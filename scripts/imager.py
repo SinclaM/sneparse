@@ -1,76 +1,92 @@
 #!/usr/bin/env python3
 from typing import Optional
+from pprint import pprint
 from csv import DictReader
 from dataclasses import dataclass
 import os
+from pathlib import Path
 import re
 
+from tqdm import tqdm
 from aplpy.core import log
+from sqlalchemy import URL, create_engine, text
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import Session
 
 from sneparse import RESOURCES
 from sneparse.util import unwrap
 from sneparse.imaging import plot_image_astropy, plot_image_apl
 
-# Recently compiled regex's are automatically cached, so precompiling
-# is only really necessary if we were to use more regex's than fit in the
-# cache. But better safe than sorry.
-epoch = r"(?P<epoch>.*)"
-tile = r"(?P<tile>T\d\dt\d\d)"
-j_info = r"(?P<j_info>J\d*[+-]\d*\.\d*\.\d*)"
-version = r"(?P<version>.*)"
-suffix = r"(?P<suffix>I\.iter1\.image\.pbcor\.tt0\.subim\.fits\.gz)"
-VLASS_FILE_RE = re.compile(fr"VLASS{epoch}\.ql\.{tile}\.{j_info}\.{version}\.{suffix}");
 
-VLASS_QUICKLOOK = unwrap(os.getenv("VLASS_QUICKLOOK"))
-def paths_from_file_name(file_name: str) -> Optional[str]:
-    match = unwrap(VLASS_FILE_RE.match(file_name))
-    epoch = match.group("epoch")
-    j_info = match.group("j_info")
-    version = match.group("version")
-    if version != "v1":
-        return None
-    tile = match.group("tile")
-    suffix = match.group("suffix")
+EPOCH_RE = re.compile(r"(?<=VLASS).+(?=\.ql)")
+VERSION_RE = re.compile(r"(?<=\.v).+(?=\.I\.iter)")
 
-    dir_ = f"VLASS{epoch[0]}*.ql.{tile}.{j_info}.v*"
-    file = f"{dir_}.{suffix}"
+def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
+    like = re.sub(VERSION_RE, "%", re.sub(EPOCH_RE, f"{epoch}.%", file_name))
 
-    out =  f"{VLASS_QUICKLOOK}/VLASS{epoch[0]}*{'v2' if epoch[0] == '1' else ''}/{tile}/{dir_}/{file}"
-    return out
+    select_path_name = text(f"SELECT path_to_file FROM file_definition WHERE file_name LIKE '{like}'")
+    result = session.execute(select_path_name).all()
+
+    return { Path("/projects/b1094/software/catalogs/").joinpath(row[0]) for row in result }
 
 @dataclass
 class CrossMatchInfo():
-    file_names: list[str]
+    file_paths: set[Path]
     ra: float
     dec: float
  
 if __name__ == "__main__":
-    sne: dict[str, CrossMatchInfo] = {}
-    with RESOURCES.joinpath("cross_matches.csv").open() as f:
-        for row in DictReader(f):
-            file_path = paths_from_file_name(row["file_name"])
-            if file_path is None:
-                continue
-            if row["name"] not in sne:
-                sne[row["name"]] = CrossMatchInfo([file_path],
-                                                  float(row["right_ascension"]),
-                                                  float(row["declination"]))
-            else:
-                sne[row["name"]].file_names.append(file_path)
+    engine = create_engine(URL.create(
+        drivername=unwrap(os.getenv("DRIVER_NAME")),
+        username  =os.getenv("VLASS_USERNAME"),
+        password  =os.getenv("VLASS_PASSWORD"),
+        host      =os.getenv("VLASS_HOST"),
+        database  =os.getenv("VLASS_DATABASE"),
+        port      =int(unwrap(os.getenv("VLASS_PORT")))
+    ))
 
-    # Turn off aplpy logs
-    log.disabled = True
+    session_maker = sessionmaker(engine)
+    with session_maker() as session:
+        fails: list[str] = []
 
-    for (name, info) in sne.items():
-        file_names = info.file_names
-        ra = info.ra
-        dec = info.dec
-        print(file_names[0])
-        # try:
-            # fig = plot_image_apl(ra, dec, name=name, cmap="gray_r", filters="r")
-            # fig.save(RESOURCES.joinpath("images", "cross_matches", name))
-            # fig.close()
-            # print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}).")
-        # except Exception as e:
-            # print(e)
-            # print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}).")
+        epoch = 1
+        sne: dict[str, CrossMatchInfo] = {}
+
+        # Total for tqdm to display. -2 for header and trailing newline (but it doesnt
+        # have to be precise).
+        total = sum(1 for _ in RESOURCES.joinpath("cross_matches.csv").open()) - 2;
+
+        with RESOURCES.joinpath("cross_matches.csv").open() as f:
+            for row in tqdm(DictReader(f), total=total):
+                file_paths = find_paths(session, row["file_name"], epoch)
+
+                if len(file_paths) == 0:
+                    fails.append(row["file_name"])
+
+                if row["name"] not in sne:
+                    sne[row["name"]] = CrossMatchInfo(file_paths,
+                                                      float(row["right_ascension"]),
+                                                      float(row["declination"]))
+                else:
+                    sne[row["name"]].file_paths.update(file_paths)
+
+        if len(fails) > 0:
+            print(f"Unable to find FITS files for the following file names in epoch {epoch}:")
+            pprint(fails)
+
+        # Turn off aplpy logs
+        # log.disabled = True
+
+        # for (name, info) in sne.items():
+            # file_paths = info.file_paths
+            # ra = info.ra
+            # dec = info.dec
+            # print(file_paths)
+            # try:
+                # fig = plot_image_apl(ra, dec, name=name, cmap="gray_r", filters="r")
+                # fig.save(RESOURCES.joinpath("images", "cross_matches", name))
+                # fig.close()
+                # print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}).")
+            # except Exception as e:
+                # print(e)
+                # print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}).")

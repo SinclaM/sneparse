@@ -2,7 +2,6 @@
 from __future__ import annotations
 import os
 from io import StringIO
-from pathlib import Path
 from pprint import pprint
 
 from sqlalchemy import URL, create_engine, text
