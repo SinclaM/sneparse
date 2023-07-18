@@ -22,6 +22,15 @@ from aplpy import FITSFigure
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
+
+def fix_aplpy_fits(aplpy_obj: FITSFigure, dropaxis=2):
+    """This removes the degenerated dimensions in APLpy 2.X...
+    The input must be the object returned by aplpy.FITSFigure().
+    `dropaxis` is the index where to start dropping the axis (by default it assumes the 3rd,4th place).
+    """
+    temp_wcs = aplpy_obj._wcs.dropaxis(dropaxis)
+    temp_wcs = temp_wcs.dropaxis(dropaxis)
+    aplpy_obj._wcs = temp_wcs
  
 def locate_images(ra: float,
                   dec: float,
@@ -91,9 +100,12 @@ def plot_image_astropy(ra: float,
                        dec: float,
                        size: int = 240,
                        filters: str = "grizy",
-                       cmap: str = "gray") -> None:
-    image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
-                                    show_progress=False)
+                       cmap: str = "gray",
+                       image_file: Optional[str] = None) -> None:
+    if image_file is None:
+        # Assume optical
+        image_file = download_file(locate_images(ra, dec, size, filters)["url"][0], show_progress=False)
+
     image_data: NDArray
     image_data, header = fits.getdata(image_file, header=True)
 
@@ -155,23 +167,38 @@ def plot_image_apl(ra: float,
                    name: Optional[str] = None,
                    size: int = 240,
                    filters: str = "grizy",
-                   cmap: str = "gray") -> FITSFigure:
-    image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
-                                    show_progress=False)
+                   cmap: str = "gray",
+                   image_file: Optional[str] = None,
+                   is_radio: bool = False) -> FITSFigure:
+    if image_file is None:
+        # Assume optical
+        image_file = download_file(locate_images(ra, dec, size, filters)["url"][0], show_progress=False)
 
     # Need wcs transfrom to translate pixel coords to ra and dec when
     # drawing crosshair.
-    image_data, header = fits.getdata(image_file, header=True)
+    image_data = fits.getdata(image_file)
     ensure_image(image_data)
-    wcs = WCS(header)
+
 
     # Create the figure from the fits data
     fig = FITSFigure(image_file)
-    fig.show_colorscale(cmap=cmap, stretch="log", vmid=np.nanmin(image_data))
+
+    if is_radio:
+        fix_aplpy_fits(fig)
+
+    fig.recenter(ra, dec, radius=0.008)
+
+    a = 100
+    vmin = np.nanmin(image_data)
+    vmax = np.nanmax(image_data)
+    vmid = ((a + 1) * vmin - vmax) / a
+
+    fig.show_colorscale(cmap=cmap, stretch="log", vmid=vmid, vmin=vmin, vmax=vmax)
 
     fig.tick_labels.set_font(size="small")
 
-    crosshair = aplpy_crosshair(ra, dec, wcs)
+    wcs = fig._wcs;
+    crosshair = aplpy_crosshair(ra, dec, wcs, is_radio=is_radio)
 
     # Draw the crosshair
     fig.show_lines(crosshair, color="red")
@@ -184,15 +211,18 @@ def plot_image_apl(ra: float,
     fig._figure.set_size_inches(8, 8)
     return fig
 
-def aplpy_crosshair(ra: float, dec: float, wcs: WCS) -> list[NDArray[Any]]:
+def aplpy_crosshair(ra: float, dec: float, wcs: WCS, is_radio: bool = False) -> list[NDArray[Any]]:
+    gap = 3 if is_radio else 6
+    segment = 2 * gap
+
     # The gap_length is how far from the center of the crosshair until each
     # segment starts.
-    gap_length_ra = wcs.all_pix2world(6, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
-    gap_length_dec = wcs.all_pix2world(0, 6, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
+    gap_length_ra = wcs.all_pix2world(gap, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
+    gap_length_dec = wcs.all_pix2world(0, gap, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
 
     # The segment length is the length of each of the 4 segments of the crosshair.
-    segment_length_ra = wcs.all_pix2world(12, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
-    segment_length_dec = wcs.all_pix2world(0, 12, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
+    segment_length_ra = wcs.all_pix2world(segment, 0, 0)[0] - wcs.all_pix2world(0, 0, 0)[0]
+    segment_length_dec = wcs.all_pix2world(0, segment, 0)[1] - wcs.all_pix2world(0, 0, 0)[1]
 
     # Right
     rx1, rx2 = (ra + gap_length_ra, ra + gap_length_ra + segment_length_ra)

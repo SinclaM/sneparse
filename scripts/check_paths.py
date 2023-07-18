@@ -23,14 +23,14 @@ if __name__ == "__main__":
 
     session_maker = sessionmaker(engine)  
     with session_maker() as session:
-        get_all_paths = text(f"SELECT path_to_file FROM file_definition;\n")
+        get_all_paths = text(f"SELECT concat(path_to_file, file_name) FROM file_definition;\n")
         print(get_all_paths)
         paths = session.execute(get_all_paths).all()
 
         fails: list[Path] = []
         for (path,) in tqdm(paths):
             f = Path("/projects/b1094/software/catalogs/").joinpath(path)
-            if not f.exists():
+            if not f.is_file():
                 fails.append(f)
 
         if (len(fails) != 0):

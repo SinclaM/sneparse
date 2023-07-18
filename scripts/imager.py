@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from typing import Optional
 from pprint import pprint
 from csv import DictReader
 from dataclasses import dataclass
@@ -15,7 +14,7 @@ from sqlalchemy.orm.session import Session
 
 from sneparse import RESOURCES
 from sneparse.util import unwrap
-from sneparse.imaging import plot_image_astropy, plot_image_apl
+from sneparse.imaging import plot_image_apl
 
 
 EPOCH_RE = re.compile(r"(?<=VLASS).+(?=\.ql)")
@@ -24,7 +23,9 @@ VERSION_RE = re.compile(r"(?<=\.v).+(?=\.I\.iter)")
 def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
     like = re.sub(VERSION_RE, "%", re.sub(EPOCH_RE, f"{epoch}.%", file_name))
 
-    select_path_name = text(f"SELECT path_to_file FROM file_definition WHERE file_name LIKE '{like}'")
+    select_path_name = text(
+        f"SELECT concat(path_to_file, file_name) FROM file_definition WHERE file_name LIKE '{like}';"
+    )
     result = session.execute(select_path_name).all()
 
     return { Path("/projects/b1094/software/catalogs/").joinpath(row[0]) for row in result }
@@ -75,18 +76,32 @@ if __name__ == "__main__":
             pprint(fails)
 
         # Turn off aplpy logs
-        # log.disabled = True
+        log.disabled = True
 
-        # for (name, info) in sne.items():
-            # file_paths = info.file_paths
-            # ra = info.ra
-            # dec = info.dec
-            # print(file_paths)
-            # try:
-                # fig = plot_image_apl(ra, dec, name=name, cmap="gray_r", filters="r")
-                # fig.save(RESOURCES.joinpath("images", "cross_matches", name))
-                # fig.close()
-                # print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}).")
-            # except Exception as e:
-                # print(e)
-                # print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}).")
+        for (name, info) in sne.items():
+            file_paths = info.file_paths
+            ra = info.ra
+            dec = info.dec
+
+            try:
+                fig = plot_image_apl(
+                    ra, dec, name=name, cmap="gray_r", filters="r", is_radio=False,
+                )
+                fig.save(RESOURCES.joinpath("images", "optical", name))
+                fig.close()
+                print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}) in optical.")
+            except Exception as e:
+                print(e)
+                print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in optical.")
+
+            try:
+                image_file = list(file_paths)[0]
+                fig = plot_image_apl(
+                    ra, dec, name=name, cmap="gray_r", image_file=str(image_file), is_radio=True
+                )
+                fig.save(RESOURCES.joinpath("images", "radio", name))
+                fig.close()
+                print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}) in radio.")
+            except Exception as e:
+                print(e)
+                print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in radio.")
