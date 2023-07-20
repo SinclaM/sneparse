@@ -212,7 +212,7 @@ def plot_image_apl(ra: float,
     return fig
 
 def aplpy_crosshair(ra: float, dec: float, wcs: WCS, is_radio: bool = False) -> list[NDArray[Any]]:
-    gap = 3 if is_radio else 6
+    gap = 1.5 if is_radio else 6
     segment = 2 * gap
 
     # The gap_length is how far from the center of the crosshair until each
