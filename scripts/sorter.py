@@ -56,13 +56,37 @@ def search_and_display(name: str) -> bool:
 
     return False
 
+def next_category() -> None:
+    global image_index
+
+    current_category = image_paths[image_index].parent.name
+
+    for (i, path) in list(enumerate(image_paths))[image_index + 1:]:
+        if path.parent.name != current_category:
+            image_index = i
+            display_image(path)
+            update_hotkeys(image_index)
+            return
+
+def prev_category() -> None:
+    global image_index
+
+    current_category = image_paths[image_index].parent.name
+
+    for (i, path) in reversed(list(enumerate(image_paths))[:image_index]):
+        if path.parent.name != current_category:
+            image_index = i
+            display_image(path)
+            update_hotkeys(image_index)
+            return
+
 def onKeyRelease(event: tk.Event) -> None:
     global typing_command
 
     if not typing_command:
-        if event.keysym == "Left":
+        if event.keysym == "Left" or event.keysym == "h":
             prev_image()
-        elif event.keysym == "Right":
+        elif event.keysym == "Right" or event.keysym == "l":
             next_image()
         elif event.char in categories.keys():
             categorize_image(categories[event.char])
@@ -72,6 +96,10 @@ def onKeyRelease(event: tk.Event) -> None:
             text_input.delete("1.0", tk.END)
             text_input.configure(foreground="white")
             text_input.focus()
+        elif event.char == "n":
+            next_category()
+        elif event.char == "N":
+            prev_category()
     else:
         if event.keysym == "Escape":
             text_input.delete("1.0", tk.END)
@@ -92,7 +120,7 @@ def onKeyRelease(event: tk.Event) -> None:
 if __name__ == "__main__":
     # Set up the GUI
     root = tk.Tk()
-    root.title("Image Categorization")
+    root.title("Image Sorter")
 
     categories = {
         "1": "agn",
@@ -107,11 +135,19 @@ if __name__ == "__main__":
         "0": "unsorted"
     }
 
+    categories_inverse = {v: k for k, v in categories.items()}
+
     for category in categories.values():
         RESOURCES.joinpath("images", "categorized", category).mkdir(exist_ok=True)
 
     # Get the list of image paths in the source folder
-    image_paths = list(SOURCE_FOLDER.glob("**/*.png"))
+    image_paths = list(
+        sorted(
+            SOURCE_FOLDER.glob("**/*.png"),
+            # Order the images by category hotkey as 1 -> 2 -> ... -> 9 -> 0
+            key=lambda path: 10 if (x := int(categories_inverse[path.parent.name])) == 0 else x
+        )
+    )
     image_index = 0
 
     # Create and display the image label
