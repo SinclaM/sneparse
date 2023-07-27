@@ -23,6 +23,8 @@ def display_image(image_path: Path) -> None:
         photo = ImageTk.PhotoImage(image)
         image_label.config(image=photo)
         image_label.image = photo
+    update_hotkeys(image_index)
+    update_progress(image_index + 1, len(image_paths))
 
 def update_hotkeys(i: int) -> None:
     for (category, hotkey) in hotkey_labels.items():
@@ -31,17 +33,19 @@ def update_hotkeys(i: int) -> None:
         else:
             hotkey.configure(background="black", foreground="white")
 
+def update_progress(i: int, total: int) -> None:
+    progress.delete("1.0", tk.END)
+    progress.insert(tk.END, f"[{i}/{total}]")
+
 def prev_image() -> None:
     global image_index
     image_index = max(image_index - 1, 0)
     display_image(image_paths[image_index])
-    update_hotkeys(image_index)
 
 def next_image() -> None:
     global image_index
     image_index = min(image_index + 1, len(image_paths) - 1)
     display_image(image_paths[image_index])
-    update_hotkeys(image_index)
 
 def search_and_display(name: str) -> bool:
     global image_index
@@ -51,7 +55,6 @@ def search_and_display(name: str) -> bool:
         if path.stem == name:
             image_index = i
             display_image(path)
-            update_hotkeys(image_index)
             return True
 
     return False
@@ -65,7 +68,6 @@ def next_category() -> None:
         if path.parent.name != current_category:
             image_index = i
             display_image(path)
-            update_hotkeys(image_index)
             return
 
 def prev_category() -> None:
@@ -77,7 +79,6 @@ def prev_category() -> None:
         if path.parent.name != current_category:
             image_index = i
             display_image(path)
-            update_hotkeys(image_index)
             return
 
 def onKeyRelease(event: tk.Event) -> None:
@@ -166,12 +167,6 @@ if __name__ == "__main__":
         T.insert(tk.END, f"{hotkey}: {category}")
         hotkey_labels[category] = T
 
-    for (category, hotkey) in hotkey_labels.items():
-        if (category == image_paths[image_index].parent.name):
-            hotkey.configure(background="yellow", foreground="black")
-        else:
-            hotkey.configure(background="black", foreground="white")
-
     # Frame to hold command box
     command_frame = tk.Frame(root)
     command_frame.pack(fill="x")
@@ -183,6 +178,10 @@ if __name__ == "__main__":
     text_input = tk.Text(command_frame, height=1)
     text_input.configure(background="black", foreground="white")
     text_input.pack(side=tk.LEFT, padx=5, fill="x")
+
+    progress = tk.Text(command_frame, height=1, width=10)
+    progress.configure(background="black", foreground="white")
+    progress.pack(side=tk.RIGHT)
 
     typing_command = False
 
