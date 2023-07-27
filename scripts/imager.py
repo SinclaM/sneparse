@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import Optional
+from typing import Optional, Tuple
 from pprint import pprint
 from csv import DictReader
 from dataclasses import dataclass
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
         session_maker = sessionmaker(engine)
         with session_maker() as session:
-            fails: list[str] = []
+            fails: list[Tuple[str, str]] = []
 
             epoch = 1
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
                     file_paths = find_paths(session, row["file_name"], epoch)
 
                     if len(file_paths) == 0:
-                        fails.append(row["file_name"])
+                        fails.append((row["name"], row["file_name"]))
 
                     if row["name"] not in sne:
                         sne[row["name"]] = CrossMatchInfo(file_paths,
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                         sne[row["name"]].file_paths.update(file_paths)
 
         if len(fails) > 0:
-            print(f"Unable to find FITS files for the following file names in epoch {epoch}:")
+            print(f"Unable to find FITS files for the following (sne, file) pairs in epoch {epoch}:")
             pprint(fails)
 
     if make_cache_file is not None:
