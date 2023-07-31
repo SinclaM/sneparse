@@ -146,7 +146,10 @@ if __name__ == "__main__":
         sorted(
             SOURCE_FOLDER.glob("**/*.png"),
             # Order the images by category hotkey as 1 -> 2 -> ... -> 9 -> 0
-            key=lambda path: 10 if (x := int(categories_inverse[path.parent.name])) == 0 else x
+            key=lambda path:
+                    1 + max(int(k) for k in categories.keys())
+                        if (x := int(categories_inverse[path.parent.name])) == 0
+                    else x
         )
     )
     image_index = 0

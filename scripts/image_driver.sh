@@ -26,7 +26,7 @@ function run_batch {
     fails+=("$i")
 }
 
-# Will be slightly larger than needed because of header and trailing newline
+# Will be larger than needed because of duplicates.
 NUM_SNE=$(cat resources/cross_matches.csv | wc -l)
 
 BATCH_COUNT=100

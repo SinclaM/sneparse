@@ -23,6 +23,7 @@ from aplpy import FITSFigure
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
 
+# See https://github.com/aplpy/aplpy/issues/423#issuecomment-848540091.
 def fix_aplpy_fits(aplpy_obj: FITSFigure, dropaxis=2):
     """This removes the degenerated dimensions in APLpy 2.X...
     The input must be the object returned by aplpy.FITSFigure().
@@ -188,6 +189,12 @@ def plot_image_apl(ra: float,
 
     fig.recenter(ra, dec, radius=0.008)
 
+    # The default `stretch="log"` is terrible for the VLASS radio data.
+    # So we have to adjust the parameters to make the normalization look
+    # more like ds9's output, which is more sensible.
+    #
+    # See p.31 of https://aplpy.readthedocs.io/_/downloads/en/stable/pdf/ for
+    # the reasoning behind this specific formula.
     a = 100
     vmin = np.nanmin(image_data)
     vmax = np.nanmax(image_data)
@@ -208,10 +215,12 @@ def plot_image_apl(ra: float,
 
     fig.add_colorbar()
 
-    fig._figure.set_size_inches(8, 8)
+    fig._figure.set_size_inches(8, 8) # type: ignore
     return fig
 
 def aplpy_crosshair(ra: float, dec: float, wcs: WCS, is_radio: bool = False) -> list[NDArray[Any]]:
+    # The radio image has less pixels than optical, so we manually tune the
+    # desired pixel count. Not ideal but it works.
     gap = 1.5 if is_radio else 6
     segment = 2 * gap
 
@@ -268,5 +277,5 @@ def plot_group(group: list[Tuple[float, float]],
 
     fig.add_colorbar()
 
-    fig._figure.set_size_inches(8, 8)
+    fig._figure.set_size_inches(8, 8) # type: ignore
     return fig
