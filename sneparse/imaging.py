@@ -2,9 +2,9 @@
 Adapted from 
 https://outerspace.stsci.edu/display/PANSTARRS/PS1+Image+Cutout+Service#PS1ImageCutoutService-DownloadaFITSFile
 """
- 
 from typing import Tuple, Any, Optional
 from io import StringIO
+from datetime import datetime
 
 import numpy as np
 from numpy.typing import NDArray
@@ -17,6 +17,7 @@ from astropy.io import fits
 from astropy.utils.data import download_file
 from astropy.table import Table
 from astropy.wcs import WCS
+from astropy.time import Time
 import requests
 from aplpy import FITSFigure
 
@@ -177,9 +178,8 @@ def plot_image_apl(ra: float,
 
     # Need wcs transfrom to translate pixel coords to ra and dec when
     # drawing crosshair.
-    image_data = fits.getdata(image_file)
+    image_data, header = fits.getdata(image_file, header=True)
     ensure_image(image_data)
-
 
     # Create the figure from the fits data
     fig = FITSFigure(image_file)
@@ -211,7 +211,24 @@ def plot_image_apl(ra: float,
     fig.show_lines(crosshair, color="red")
 
     if name is not None:
-        fig.add_label(0.6, 0.53, name, relative=True, layer="source", color="red")
+        fig.add_label(0.53, 0.53, name, relative=True, color="red", horizontalalignment="left")
+
+    if is_radio:
+        observation_date = datetime.fromisoformat(header["DATE"])
+    else:
+        t = Time(header["MJD-OBS"], format="mjd")
+        t.format = "datetime"
+        observation_date = t.value
+
+
+    fig.add_label(
+        0.05, 0.85, observation_date.date().isoformat(),
+        relative=True, color="black", size="x-large", horizontalalignment="left"
+    )
+    fig.add_label(
+        0.05, 0.9, "RADIO" if is_radio else "OPTICAL",
+        relative=True, color="blue", size="xx-large", horizontalalignment="left"
+    )
 
     fig.add_colorbar()
 
