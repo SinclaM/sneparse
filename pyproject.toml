@@ -11,13 +11,10 @@ license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
 keywords = ["supernovae", "postgresql", "open-astronomy-catalogs"]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "matplotlib",
     "astropy",

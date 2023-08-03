@@ -69,9 +69,9 @@ class SneRecord():
             case _:
                 raise Exception("Invalid declination")
 
-        self.discover_date   = discover_date
-        self.claimed_type    = claimed_type
-        self.source          = source
+        self.discover_date = discover_date
+        self.claimed_type  = claimed_type
+        self.source        = source
 
     def __str__(self) -> str:
         return f"""SneRecord(name={self.name}, right_ascension={self.right_ascension}, declination={self.declination}, discover_date={self.discover_date}, claimed_type={self.claimed_type}, source={self.source})"""

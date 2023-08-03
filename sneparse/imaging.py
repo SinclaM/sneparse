@@ -10,6 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
+import matplotlib.figure
 from matplotlib.colors import LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.visualization.wcsaxes.core import WCSAxesSubplot
@@ -20,6 +21,9 @@ from astropy.wcs import WCS
 from astropy.time import Time
 import requests
 from aplpy import FITSFigure
+
+from sneparse.record import SneRecord
+from sneparse.util import unwrap
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
@@ -164,14 +168,20 @@ def plot_image_astropy(ra: float,
     fig.set_size_inches(8, 8)
 
 
-def plot_image_apl(ra: float,
-                   dec: float,
-                   name: Optional[str] = None,
-                   size: int = 240,
-                   filters: str = "grizy",
-                   cmap: str = "gray",
-                   image_file: Optional[str] = None,
-                   is_radio: bool = False) -> FITSFigure:
+def plot_image_apl(
+    record: SneRecord,
+    figure: Optional[matplotlib.figure.Figure] = None,
+    subplot: Tuple[int, int, int] | list[float] = (1, 1, 1),
+    size: int = 240,
+    filters: str = "grizy",
+    cmap: str = "gray",
+    image_file: Optional[str] = None,
+    is_radio: bool = False
+) -> FITSFigure:
+    name = record.name
+    ra = unwrap(record.right_ascension).degrees
+    dec = unwrap(record.declination).degrees
+
     if image_file is None:
         # Assume optical
         image_file = download_file(locate_images(ra, dec, size, filters)["url"][0], show_progress=False)
@@ -182,7 +192,7 @@ def plot_image_apl(ra: float,
     ensure_image(image_data)
 
     # Create the figure from the fits data
-    fig = FITSFigure(image_file)
+    fig = FITSFigure(image_file, figure=figure, subplot=subplot)
 
     if is_radio:
         fix_aplpy_fits(fig)
@@ -210,8 +220,7 @@ def plot_image_apl(ra: float,
     # Draw the crosshair
     fig.show_lines(crosshair, color="red")
 
-    if name is not None:
-        fig.add_label(0.53, 0.53, name, relative=True, color="red", horizontalalignment="left")
+    fig.add_label(0.53, 0.53, name, relative=True, color="red", horizontalalignment="left")
 
     if is_radio:
         observation_date = datetime.fromisoformat(header["DATE"])
@@ -219,7 +228,6 @@ def plot_image_apl(ra: float,
         t = Time(header["MJD-OBS"], format="mjd")
         t.format = "datetime"
         observation_date = t.value
-
 
     fig.add_label(
         0.05, 0.85, observation_date.date().isoformat(),
@@ -232,7 +240,7 @@ def plot_image_apl(ra: float,
 
     fig.add_colorbar()
 
-    fig._figure.set_size_inches(8, 8) # type: ignore
+    # fig._figure.set_size_inches(8, 8) # type: ignore
     return fig
 
 def aplpy_crosshair(ra: float, dec: float, wcs: WCS, is_radio: bool = False) -> list[NDArray[Any]]:

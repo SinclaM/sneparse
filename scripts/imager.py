@@ -10,14 +10,17 @@ import traceback
 import subprocess
 import argparse
 import pickle
+from datetime import datetime
 
 from tqdm import tqdm
 from aplpy.core import log
 from sqlalchemy import URL, create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
+import matplotlib.pyplot as plt
 
 from sneparse import RESOURCES
+from sneparse.record import SneRecord
 from sneparse.util import unwrap
 from sneparse.imaging import plot_image_apl
 
@@ -55,7 +58,7 @@ if __name__ == "__main__":
     cache_file: Optional[str] = args.cache_file
     make_cache_file: Optional[str] = args.make_cache_file
 
-    sne: dict[str, CrossMatchInfo] = {}
+    sne: dict[SneRecord, set[Path]] = {}
 
     if cache_file is not None:
         with open(cache_file, "rb") as f:
@@ -87,12 +90,19 @@ if __name__ == "__main__":
                     if len(file_paths) == 0:
                         fails.append((row["name"], row["file_name"]))
 
+                    record = SneRecord(
+                        row["name"],
+                        float(row["right_ascension"]),
+                        float(row["declination"]),
+                        None if row["discover_date"] == "" else datetime.fromisoformat(row["discover_date"]),
+                        None if row["claimed_type"] == "" else row["claimed_type"],
+                        row["source"]
+                    )
+
                     if row["name"] not in sne:
-                        sne[row["name"]] = CrossMatchInfo(file_paths,
-                                                          float(row["right_ascension"]),
-                                                          float(row["declination"]))
+                        sne[record] = file_paths
                     else:
-                        sne[row["name"]].file_paths.update(file_paths)
+                        sne[record].update(file_paths)
 
         if len(fails) > 0:
             print(f"Unable to find FITS files for the following (sne, file) pairs in epoch {epoch}:")
@@ -105,43 +115,54 @@ if __name__ == "__main__":
     # Turn off aplpy logs
     log.disabled = True
 
-    for (name, info) in list(sne.items())[start : start + count]:
-        file_paths = info.file_paths
-        ra = info.ra
-        dec = info.dec
+    for (record, file_paths) in list(sne.items())[start : start + count]:
+        name = record.name
+        ra = unwrap(record.right_ascension).degrees
+        dec = unwrap(record.declination).degrees
 
-        successes: list[Path] = []
+        success = False
+
+        fig = plt.figure(figsize=(16, 8))
+        title_date = "Unknown discovery date" if record.discover_date is None \
+                        else f"Discovered {record.discover_date.date()}"
+
+        title_claimed_type = "Unknown claimed type" if record.claimed_type is None \
+                        else f"Type {record.claimed_type}"
+
+        fig.suptitle( f"{name}        {title_date}        {title_claimed_type}", size="xx-large")
 
         try:
-            fig = plot_image_apl(
-                ra, dec, name=name, cmap="gray_r", filters="r", is_radio=False,
+            plot_image_apl(
+                record,
+                cmap="gray_r",
+                filters="r",
+                is_radio=False,
+                figure=fig,
+                subplot=[0.07, 0.05, 0.38, 0.9]
             )
-            path = RESOURCES.joinpath("images", "optical", f"{name}.png")
-            fig.save(path)
-            fig.close()
-            successes.append(path)
+            success = True
         except Exception:
             traceback.print_exc()
             print(f"[PARTIAL FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in optical.")
 
         try:
             image_file = list(file_paths)[0]
-            fig = plot_image_apl(
-                ra, dec, name=name, cmap="gray_r", image_file=str(image_file), is_radio=True
+            plot_image_apl(
+                record,
+                cmap="gray_r",
+                image_file=str(image_file),
+                is_radio=True,
+                figure=fig,
+                subplot=[0.57, 0.05, 0.38, 0.9]
             )
-            path = RESOURCES.joinpath("images", "radio", f"{name}.png")
-            fig.save(path)
-            fig.close()
-            successes.append(path)
+            success = True
         except Exception:
             traceback.print_exc()
             print(f"[PARTIAL FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in radio.")
 
-        if len(successes) > 0:
-            output = RESOURCES.joinpath("images", "cross_matches", f"{name}.png")
-            subprocess.run(["convert", "+append"] + [str(path) for path in successes] + [str(output)])
-            for path in successes:
-                path.unlink()
+        if success:
+            plt.savefig(RESOURCES.joinpath("images", "cross_matches", f"{name}.png"))
             print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}).")
         else:
             print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in both optical and radio.")
+        plt.close()
