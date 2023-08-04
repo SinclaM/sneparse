@@ -1,6 +1,6 @@
 from __future__ import annotations # for postponed annotation evaluation
-from typing import Literal, Tuple, Optional
-from math import (floor, sin, cos, acos, radians, degrees)
+from typing import Literal, Tuple, cast
+from math import floor, sin, cos, acos, radians, degrees, copysign
 
 HMS_HOURS_PER_DEGREE = 24.0 / 360.0
 HMS_MINUTES_PER_HOUR = 60
@@ -145,6 +145,10 @@ class DegreesMinutesSeconds():
         Converts a `DecimalDegrees` value to `DegreesMinutesSeconds`.
         """
         deg = d.degrees
+
+        sign = cast(Literal[-1, 1], copysign(1, deg))
+        deg = abs(deg)
+
         while deg > 360.0:
             deg -= 360.0
 
@@ -154,7 +158,7 @@ class DegreesMinutesSeconds():
         deg -= minutes / DMS_MINUTES_PER_DEGREE
         seconds = DMS_MINUTES_PER_DEGREE * DMS_SECONDS_PER_MINUTE * deg
 
-        return DegreesMinutesSeconds(1, degrees, minutes, seconds)
+        return DegreesMinutesSeconds(sign, degrees, minutes, seconds)
 
     @classmethod
     def from_str(cls, s: str) -> DegreesMinutesSeconds:

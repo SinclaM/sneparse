@@ -49,6 +49,8 @@ class ConversionTests(unittest.TestCase):
                          DegreesMinutesSeconds(1, 100, 0, 0.0))
         self.assertEqual(DegreesMinutesSeconds.from_decimal_degrees(DecimalDegrees(20.245)), 
                          DegreesMinutesSeconds(1, 20, 14, 42))
+        self.assertEqual(DegreesMinutesSeconds.from_decimal_degrees(DecimalDegrees(-32.045)),
+                         DegreesMinutesSeconds(-1, 32, 2, 42))
 
     def test_dms_to_deg(self):
         self.assertEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 0)), DecimalDegrees(0.0))
@@ -57,6 +59,8 @@ class ConversionTests(unittest.TestCase):
                          DecimalDegrees(234.3950556))
         self.assertEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 10, 11, 12.3)), 
                          DecimalDegrees(10.18675))
+        self.assertEqual(DecimalDegrees.from_dms(DegreesMinutesSeconds(-1, 32, 2, 42)),
+                         DecimalDegrees(-32.045))
 
     def test_cartesian_from_angular(self):
         ra  = DecimalDegrees(26.017046)
