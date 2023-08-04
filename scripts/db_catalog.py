@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     # Combine matches into disjoint sets of 1, 2, 3, 4, ...
     ds: DisjointSet[MasterRecord] = DisjointSet()
-    for u, v in [row.tuple() for row in cross_matches]:
+    for u, v in [row._tuple() for row in cross_matches]:
         ds.union(u, v)
 
     # Assign a representative member in each set and update the table
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                     .filter(MasterRecord.alias_of == None)\
                     .filter(MasterRecord.right_ascension != None)\
                     .filter(MasterRecord.declination != None)
-    unique_records = [row.tuple()[0] for row in session.execute(select_reps).all()]
+    unique_records = [row._tuple()[0] for row in session.execute(select_reps).all()]
 
     session.add_all(
             CleanedRecord(master_id=record.id,

@@ -11,7 +11,7 @@ function run_batch {
 
     while [[ $retries -lt 3 ]]; do
         echo "Doing batch starting at $i ..."
-        DISPLAY= python scripts/imager.py "$i" "$BATCH_COUNT" --cache-file "$CACHE_FILE"
+        DISPLAY= python -u scripts/imager.py "$i" "$BATCH_COUNT" --cache-file "$CACHE_FILE"
 
         # Check the exit status of the previous command
         if [[ $? -eq 0 ]]; then
@@ -32,7 +32,7 @@ NUM_SNE=$(cat resources/cross_matches.csv | wc -l)
 BATCH_COUNT=100
 CACHE_FILE="sne_cache.pickle"
 
-DISPLAY= python scripts/imager.py 0 "$BATCH_COUNT" --make-cache-file "$CACHE_FILE"
+DISPLAY= python -u scripts/imager.py 0 "$BATCH_COUNT" --make-cache-file "$CACHE_FILE"
 
 for ((i = BATCH_COUNT; i <= NUM_SNE; i += BATCH_COUNT)); do
     run_batch "$i" "$BATCH_COUNT"
