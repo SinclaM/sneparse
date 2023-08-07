@@ -3,16 +3,12 @@ import shutil
 import tkinter as tk
 from PIL import Image, ImageTk
 from pathlib import Path
-
-from sneparse import RESOURCES
-
-# Choose the source folder
-SOURCE_FOLDER = RESOURCES.joinpath("images", "categorized")
+import argparse
 
 # Function to move the image to a category folder
 def categorize_image(category: str) -> None:
     image_path = image_paths[image_index]
-    target_folder = RESOURCES.joinpath("images", "categorized", category)
+    target_folder = categories_dir.joinpath(category)
     shutil.move(image_path, target_folder)
     image_paths[image_index] = target_folder.joinpath(image_path.name)
     next_image()
@@ -20,7 +16,10 @@ def categorize_image(category: str) -> None:
 # Function to display the image
 def display_image(image_path: Path) -> None:
     with Image.open(image_path) as image:
-        photo = ImageTk.PhotoImage(image)
+        new_height = 800
+        new_width  = new_height * image.width // image.height
+
+        photo = ImageTk.PhotoImage(image.resize((new_width, new_height)))
         image_label.config(image=photo)
         image_label.image = photo
     update_hotkeys(image_index)
@@ -119,39 +118,38 @@ def onKeyRelease(event: tk.Event) -> None:
             typing_command = False
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "categories",
+        type=Path,
+        help="Path to the categories directory",
+    )
+
+    args = parser.parse_args()
+    categories_dir = args.categories
+
     # Set up the GUI
     root = tk.Tk()
     root.title("Image Sorter")
 
-    categories = {
-        "1": "agn",
-        "2": "bad",
-        "3": "bizarre_radio",
-        "4": "galactic",
-        "5": "good",
-        "6": "low_dec",
-        "7": "nuclear",
-        "8": "unclear",
-        "9": "weak_radio",
-        "0": "unsorted"
-    }
+    hotkeys = "1234567890qwertyuiop"
+
+    categories: dict[str, str] = {}
+    for (i, name) in enumerate(d.name for d in categories_dir.iterdir() if d.is_dir()):
+        if i >= len(hotkeys):
+            raise Exception("Too many categories")
+        categories[hotkeys[i]] = name
 
     categories_inverse = {v: k for k, v in categories.items()}
-
-    for category in categories.values():
-        RESOURCES.joinpath("images", "categorized", category).mkdir(exist_ok=True)
 
     # Get the list of image paths in the source folder
     image_paths = list(
         sorted(
-            SOURCE_FOLDER.glob("**/*.png"),
-            # Order the images by category hotkey as 1 -> 2 -> ... -> 9 -> 0
-            key=lambda path:
-                    1 + max(int(k) for k in categories.keys())
-                        if (x := int(categories_inverse[path.parent.name])) == 0
-                    else x
+            categories_dir.glob("**/*.png"),
+            key=lambda path: hotkeys.index(categories_inverse[path.parent.name])
         )
     )
+
     image_index = 0
 
     # Create and display the image label
@@ -166,7 +164,8 @@ if __name__ == "__main__":
     hotkey_labels = {}
     for hotkey, category in categories.items():
         T = tk.Text(hotkey_frame, height=1, width=20)
-        T.pack(side=tk.LEFT, padx=5)
+        T.grid(row=(len(hotkey_labels) // 10), column=(len(hotkey_labels) % 10), padx=5, pady=2)
+
         T.insert(tk.END, f"{hotkey}: {category}")
         hotkey_labels[category] = T
 

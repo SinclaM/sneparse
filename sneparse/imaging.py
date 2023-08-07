@@ -240,7 +240,6 @@ def plot_image_apl(
 
     fig.add_colorbar()
 
-    # fig._figure.set_size_inches(8, 8) # type: ignore
     return fig
 
 def aplpy_crosshair(ra: float, dec: float, wcs: WCS, is_radio: bool = False) -> list[NDArray[Any]]:
