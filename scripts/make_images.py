@@ -2,12 +2,10 @@
 from typing import Optional, Tuple
 from pprint import pprint
 from csv import DictReader
-from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
 import traceback
-import subprocess
 import argparse
 import pickle
 from datetime import datetime
@@ -37,14 +35,7 @@ def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
 
     return { Path("/projects/b1094/software/catalogs/").joinpath(row[0]) for row in result }
 
-@dataclass
-class CrossMatchInfo():
-    file_paths: set[Path]
-    ra: float
-    dec: float
- 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("start", type=int)
     parser.add_argument("count", type=int)
@@ -66,18 +57,18 @@ if __name__ == "__main__":
     else:
         engine = create_engine(URL.create(
             drivername=unwrap(os.getenv("DRIVER_NAME")),
-            username  =os.getenv("VLASS_USERNAME"),
-            password  =os.getenv("VLASS_PASSWORD"),
-            host      =os.getenv("VLASS_HOST"),
-            database  =os.getenv("VLASS_DATABASE"),
-            port      =int(unwrap(os.getenv("VLASS_PORT")))
+            username  =os.getenv("TRANSIENTS_USERNAME"),
+            password  =os.getenv("TRANSIENTS_PASSWORD"),
+            host      =os.getenv("TRANSIENTS_HOST"),
+            database  ="vlass",
+            port      =int(unwrap(os.getenv("TRANSIENTS_PORT")))
         ))
 
         session_maker = sessionmaker(engine)
         with session_maker() as session:
             fails: list[Tuple[str, str]] = []
 
-            epoch = 1
+            epoch = 1 if (e := os.getenv("EPOCH")) is None else int(e)
 
             # Total for tqdm to display. -2 for header and trailing newline (but it doesnt
             # have to be precise).

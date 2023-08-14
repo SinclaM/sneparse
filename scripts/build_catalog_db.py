@@ -20,11 +20,11 @@ if __name__ == "__main__":
     # Initialize Postgres connection
     engine = create_engine(URL.create(
         drivername=unwrap(os.getenv("DRIVER_NAME")),
-        username  =os.getenv("VLASS_USERNAME"),
-        password  =os.getenv("VLASS_PASSWORD"),
-        host      =os.getenv("VLASS_HOST"),
-        database  =os.getenv("VLASS_DATABASE"),
-        port      =int(unwrap(os.getenv("VLASS_PORT")))
+        username  =os.getenv("TRANSIENTS_USERNAME"),
+        password  =os.getenv("TRANSIENTS_PASSWORD"),
+        host      =os.getenv("TRANSIENTS_HOST"),
+        database  ="vlass",
+        port      =int(unwrap(os.getenv("TRANSIENTS_PORT")))
     ))
 
     session_maker = sessionmaker(engine)

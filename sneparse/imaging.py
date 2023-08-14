@@ -238,6 +238,11 @@ def plot_image_apl(
         relative=True, color="blue", size="xx-large", horizontalalignment="left"
     )
 
+    if is_radio and record.discover_date is not None and observation_date < record.discover_date:
+        fig.add_label(
+            0.05, 0.95, "PRE-EXPLOSION", relative=True, color="red", size="xx-large", horizontalalignment="left"
+        )
+
     fig.add_colorbar()
 
     return fig
