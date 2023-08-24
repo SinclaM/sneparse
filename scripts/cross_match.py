@@ -14,12 +14,12 @@ from sneparse.util import unwrap
 
 EPOCH_DATE_CUTOFFS = {
     1: "2020-01-01",
-    2: "2022-01-01",
+    2: "2022-03-01",
     3: "2024-01-01",
 }
 
 if __name__ == "__main__":
-    epoch = 1 if (e := os.getenv("EPOCH")) is None else int(e)
+    epoch = int(unwrap(os.getenv("EPOCH")))
 
     # Setup a connection to CIERA's VLASS db.
     engine = create_engine(URL.create(
@@ -36,7 +36,10 @@ if __name__ == "__main__":
         # The foreign VLASS sources table is not indexed properly, so we create a temp
         # copy of it and prepare it for cross matching.
         temp_gaussian = "temp_gaussian"
-        create_temp_gaussian = text(f"CREATE TEMPORARY TABLE {temp_gaussian} AS TABLE pybdsf_gaussian_epoch1;\n")
+        create_temp_gaussian = text(
+            f"CREATE TEMPORARY TABLE {temp_gaussian} AS                              \n"
+            f"    SELECT * FROM pybdsf_gaussian WHERE file_name LIKE 'VLASS{epoch}%';\n"
+        )
         print(create_temp_gaussian)
         session.execute(create_temp_gaussian)
 
@@ -56,7 +59,7 @@ if __name__ == "__main__":
             f"CREATE TEMPORARY TABLE {temp_cross_match} AS                                    \n"
             f"    SELECT * FROM {CLEANED_TABLE_NAME} AS a, {temp_gaussian} AS b               \n"
             f"    WHERE q3c_join(a.right_ascension, a.declination, b.ra, b.decl, {separation})\n"
-            f"        AND a.discover_date < TIMESTAMP '{EPOCH_DATE_CUTOFFS[epoch]}'                            \n"
+            f"        AND a.discover_date < TIMESTAMP '{EPOCH_DATE_CUTOFFS[epoch]}'           \n"
         )
         print(cross_match)
         session.execute(cross_match)
@@ -68,7 +71,7 @@ if __name__ == "__main__":
         session.connection().connection.cursor().copy_expert(copy_cross_matches, cross_matches_buffer)
         cross_matches_buffer.seek(0)
 
-    output_file = RESOURCES.joinpath("cross_matches.csv")
+    output_file = RESOURCES.joinpath(f"epoch{epoch}_cross_matches.csv")
     print(f"Writing results to {output_file}")
     with open(output_file, "w") as csvfile:
         # Save the results to an output file.

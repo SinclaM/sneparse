@@ -36,6 +36,8 @@ def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
     return { Path("/projects/b1094/software/catalogs/").joinpath(row[0]) for row in result }
 
 if __name__ == "__main__":
+    epoch = int(unwrap(os.getenv("EPOCH")))
+
     parser = argparse.ArgumentParser()
     parser.add_argument("start", type=int)
     parser.add_argument("count", type=int)
@@ -68,13 +70,11 @@ if __name__ == "__main__":
         with session_maker() as session:
             fails: list[Tuple[str, str]] = []
 
-            epoch = 1 if (e := os.getenv("EPOCH")) is None else int(e)
-
             # Total for tqdm to display. -2 for header and trailing newline (but it doesnt
             # have to be precise).
-            total = sum(1 for _ in RESOURCES.joinpath("cross_matches.csv").open()) - 2;
+            total = sum(1 for _ in RESOURCES.joinpath(f"epoch{epoch}_cross_matches.csv").open()) - 2;
 
-            with RESOURCES.joinpath("cross_matches.csv").open() as f:
+            with RESOURCES.joinpath(f"epoch{epoch}_cross_matches.csv").open() as f:
                 for row in tqdm(DictReader(f), total=total):
                     file_paths = find_paths(session, row["file_name"], epoch)
 
@@ -126,6 +126,7 @@ if __name__ == "__main__":
             plot_image_apl(
                 record,
                 cmap="gray_r",
+                size=340,
                 filters="r",
                 is_radio=False,
                 figure=fig,
@@ -141,6 +142,7 @@ if __name__ == "__main__":
             plot_image_apl(
                 record,
                 cmap="gray_r",
+                size=340,
                 image_file=str(image_file),
                 is_radio=True,
                 figure=fig,
@@ -152,7 +154,7 @@ if __name__ == "__main__":
             print(f"[PARTIAL FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in radio.")
 
         if success:
-            plt.savefig(RESOURCES.joinpath("images", "cross_matches", f"{name}.png"))
+            plt.savefig(RESOURCES.joinpath("images", f"epoch{epoch}_cross_matches", f"{name}.png"))
             print(f"[SUCCESS] Plotted source \"{name}\" (ra={ra}, dec={dec}).")
         else:
             print(f"[FAIL] Failed to plot source \"{name}\" (ra={ra}, dec={dec}) in both optical and radio.")

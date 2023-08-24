@@ -23,6 +23,7 @@ import requests
 from aplpy import FITSFigure
 
 from sneparse.record import SneRecord
+from sneparse.coordinates import DecimalDegrees, DegreesMinutesSeconds
 from sneparse.util import unwrap
 
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
@@ -192,33 +193,31 @@ def plot_image_apl(
     ensure_image(image_data)
 
     # Create the figure from the fits data
-    fig = FITSFigure(image_file, figure=figure, subplot=subplot)
-
+    north = not is_radio
+    fig = FITSFigure(image_file, figure=figure, subplot=subplot, north=north)
     if is_radio:
         fix_aplpy_fits(fig)
 
-    fig.recenter(ra, dec, radius=0.008)
-
-    # The default `stretch="log"` is terrible for the VLASS radio data.
-    # So we have to adjust the parameters to make the normalization look
-    # more like ds9's output, which is more sensible.
-    #
-    # See p.31 of https://aplpy.readthedocs.io/_/downloads/en/stable/pdf/ for
-    # the reasoning behind this specific formula.
-    a = 100
-    vmin = np.nanmin(image_data)
-    vmax = np.nanmax(image_data)
-    vmid = ((a + 1) * vmin - vmax) / a
-
-    fig.show_colorscale(cmap=cmap, stretch="log", vmid=vmid, vmin=vmin, vmax=vmax)
+    radius = DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 30)).degrees
+    fig.recenter(ra, dec, radius=radius)
 
     fig.tick_labels.set_font(size="small")
 
-    wcs = fig._wcs;
-    crosshair = aplpy_crosshair(ra, dec, wcs, is_radio=is_radio)
-
     # Draw the crosshair
-    fig.show_lines(crosshair, color="red")
+    x, y = fig.world2pixel(ra, dec)
+
+    gap = 1.5 if is_radio else 6
+    segment = 2 * gap
+
+    crosshair = [
+        lines.Line2D([x + gap, x + gap + segment], [y, y], lw=1.5, color="red", axes=fig.ax),
+        lines.Line2D([x - gap - segment, x - gap], [y, y], lw=1.5, color="red", axes=fig.ax),
+        lines.Line2D([x, x], [y + gap, y + gap + segment], lw=1.5, color="red", axes=fig.ax),
+        lines.Line2D([x, x], [y - gap - segment, y - gap], lw=1.5, color="red", axes=fig.ax),
+    ]
+
+    for line in crosshair:
+        fig.ax.add_line(line)
 
     fig.add_label(0.53, 0.53, name, relative=True, color="red", horizontalalignment="left")
 
@@ -242,6 +241,19 @@ def plot_image_apl(
         fig.add_label(
             0.05, 0.95, "PRE-EXPLOSION", relative=True, color="red", size="xx-large", horizontalalignment="left"
         )
+
+    # The default `stretch="log"` is terrible for the VLASS radio data.
+    # So we have to adjust the parameters to make the normalization look
+    # more like ds9's output, which is more sensible.
+    #
+    # See p.31 of https://aplpy.readthedocs.io/_/downloads/en/stable/pdf/ for
+    # the reasoning behind this specific formula.
+    a = 100
+    vmin = np.nanmin(image_data)
+    vmax = np.nanmax(image_data)
+    vmid = ((a + 1) * vmin - vmax) / a
+
+    fig.show_colorscale(cmap=cmap, stretch="log", vmid=vmid, vmin=vmin, vmax=vmax)
 
     fig.add_colorbar()
 

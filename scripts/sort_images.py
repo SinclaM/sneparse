@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     # Set up the GUI
     root = tk.Tk()
-    root.title("Image Sorter")
+    root.title(f"Image Sorter - {categories_dir}")
 
     hotkeys = "1234567890qwertyuiop"
 
