@@ -5,6 +5,7 @@ https://outerspace.stsci.edu/display/PANSTARRS/PS1+Image+Cutout+Service#PS1Image
 from typing import Tuple, Any, Optional
 from io import StringIO
 from datetime import datetime
+from csv import DictReader
 
 import numpy as np
 from numpy.typing import NDArray
@@ -39,12 +40,12 @@ def fix_aplpy_fits(aplpy_obj: FITSFigure, dropaxis=2):
     temp_wcs = temp_wcs.dropaxis(dropaxis)
     aplpy_obj._wcs = temp_wcs
  
-def locate_images(ra: float,
+def locate_image_ps1(ra: float,
                   dec: float,
                   size: int = 240,
                   filters="grizy",
                   format_="fits",
-                  imagetypes="stack") -> Table:
+                  imagetypes="stack") -> str:
     """
     Query ps1filenames.py service for multiple positions to get a list of images
     This adds a url column to the table to retrieve the cutout.
@@ -61,10 +62,6 @@ def locate_images(ra: float,
  
     Returns an astropy table with the results
     """
-    # if dec < -30.0:
-    #     print( "\tThe PanSTARRS-1 survey has a nominal -30° declination limit.")
-    #     print(f"\tA request for dec={dec} will likely fail.")
-
     if format_ not in ("jpg","png","fits"):
         raise ValueError("format must be one of jpg, png, fits")
 
@@ -94,10 +91,19 @@ def locate_images(ra: float,
     urlbase = f"{fitscut}?size={size}&format={format_}"
     tab["url"] = [f"{urlbase}&ra={ra}&dec={dec}&red={filename}"
                     for (filename, ra, dec) in zip(tab["filename"], tab["ra"], tab["dec"])]
-    return tab
+    return tab["url"][0]
 
-class NaNImageError(Exception):
-        pass
+def locate_image_skymapper(ra: float, dec: float, radius: float, filters: str = "r") -> str:
+    size = min(2 * radius, 0.17)
+    urlbase = "https://api.skymapper.nci.org.au/public/siap/dr2/query?"
+    r = requests.get(f"{urlbase}POS={ra},{dec}&SIZE={size}&FORMAT=image/fits&BAND={','.join(filters)}&INTERSECT=COVERS&RESPONSEFORMAT=CSV")
+    r.raise_for_status()
+    reader = DictReader(StringIO(r.text))
+
+    return next(reader)["get_image"]
+
+
+class NaNImageError(Exception): ...
 
 def ensure_image(data: NDArray) -> None:
     if np.isnan(np.nanmin(data)):
@@ -109,9 +115,14 @@ def plot_image_astropy(ra: float,
                        filters: str = "grizy",
                        cmap: str = "gray",
                        image_file: Optional[str] = None) -> None:
+    radius = DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 30)).degrees
+
     if image_file is None:
         # Assume optical
-        image_file = download_file(locate_images(ra, dec, size, filters)["url"][0], show_progress=False)
+        try:
+            image_file = download_file(locate_image_ps1(ra, dec, size, filters), show_progress=False)
+        except:
+            image_file = download_file(locate_image_skymapper(ra, dec, radius, filters), show_progress=False)
 
     image_data: NDArray
     image_data, header = fits.getdata(image_file, header=True)
@@ -183,9 +194,16 @@ def plot_image_apl(
     ra = unwrap(record.right_ascension).degrees
     dec = unwrap(record.declination).degrees
 
+    radius = DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 30)).degrees
+
+    is_ps1 = False
     if image_file is None:
         # Assume optical
-        image_file = download_file(locate_images(ra, dec, size, filters)["url"][0], show_progress=False)
+        try:
+            image_file = download_file(locate_image_ps1(ra, dec, size, filters), show_progress=False)
+            is_ps1 = True
+        except:
+            image_file = download_file(locate_image_skymapper(ra, dec, radius, filters), show_progress=False)
 
     # Need wcs transfrom to translate pixel coords to ra and dec when
     # drawing crosshair.
@@ -198,7 +216,6 @@ def plot_image_apl(
     if is_radio:
         fix_aplpy_fits(fig)
 
-    radius = DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 30)).degrees
     fig.recenter(ra, dec, radius=radius)
 
     fig.tick_labels.set_font(size="small")
@@ -206,14 +223,12 @@ def plot_image_apl(
     # Draw the crosshair
     x, y = fig.world2pixel(ra, dec)
 
-    gap = 1.5 if is_radio else 6
+    gap = 1.5 if is_radio else (6 if is_ps1 else 3)
     segment = 2 * gap
 
     crosshair = [
         lines.Line2D([x + gap, x + gap + segment], [y, y], lw=1.5, color="red", axes=fig.ax),
-        lines.Line2D([x - gap - segment, x - gap], [y, y], lw=1.5, color="red", axes=fig.ax),
         lines.Line2D([x, x], [y + gap, y + gap + segment], lw=1.5, color="red", axes=fig.ax),
-        lines.Line2D([x, x], [y - gap - segment, y - gap], lw=1.5, color="red", axes=fig.ax),
     ]
 
     for line in crosshair:
@@ -228,8 +243,9 @@ def plot_image_apl(
         t.format = "datetime"
         observation_date = t.value
 
+    info = f"{'VLA - 3 GHz' if is_radio else ('PS1 - r-band' if is_ps1 else 'SkyMapper - r-band')}"
     fig.add_label(
-        0.05, 0.85, observation_date.date().isoformat(),
+        0.05, 0.85, f"{observation_date.date().isoformat()} - {info}",
         relative=True, color="black", size="x-large", horizontalalignment="left"
     )
     fig.add_label(
@@ -294,8 +310,11 @@ def plot_group(group: list[Tuple[float, float]],
                filters: str = "grizy",
                cmap: str = "gray") -> FITSFigure:
     ra, dec = group[0]
-    image_file: str = download_file(locate_images(ra, dec, size, filters)["url"][0],
-                                    show_progress=False)
+    radius = DecimalDegrees.from_dms(DegreesMinutesSeconds(1, 0, 0, 30)).degrees
+    try:
+        image_file = download_file(locate_image_ps1(ra, dec, size, filters), show_progress=False)
+    except:
+        image_file = download_file(locate_image_skymapper(ra, dec, radius, filters), show_progress=False)
 
     # Need wcs transfrom to translate pixel coords to ra and dec when
     # drawing crosshair.
