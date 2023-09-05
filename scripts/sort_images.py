@@ -33,8 +33,10 @@ def update_hotkeys(i: int) -> None:
             hotkey.configure(background="black", foreground="white")
 
 def update_progress(i: int, total: int) -> None:
+    progress.configure(state="normal")
     progress.delete("1.0", tk.END)
     progress.insert(tk.END, f"[{i}/{total}]")
+    progress.configure(state="disabled")
 
 def prev_image() -> None:
     global image_index
@@ -92,7 +94,10 @@ def onKeyRelease(event: tk.Event) -> None:
             categorize_image(categories[event.char])
         elif event.char == "/":
             typing_command = True
+            command_text.configure(state="normal")
             command_text.replace("1.0", tk.END, "search:")
+            command_text.configure(state="disabled")
+            text_input.configure(state="normal")
             text_input.delete("1.0", tk.END)
             text_input.configure(foreground="white")
             text_input.focus()
@@ -103,17 +108,23 @@ def onKeyRelease(event: tk.Event) -> None:
     else:
         if event.keysym == "Escape":
             text_input.delete("1.0", tk.END)
+            text_input.configure(state="disabled")
+            command_text.configure(state="normal")
             command_text.delete("1.0", tk.END)
+            command_text.configure(state="disabled")
             root.focus()
             typing_command = False
         elif event.keysym == "Return":
             name = text_input.get("1.0", tk.END).strip()
             found = search_and_display(name)
             text_input.delete("1.0", tk.END)
+            command_text.configure(state="normal")
             command_text.delete("1.0", tk.END)
+            command_text.configure(state="disabled")
             if not found:
                 text_input.insert(tk.END, f"No image found for \"{name}\".")
                 text_input.configure(foreground="red")
+            text_input.configure(state="disabled")
             root.focus()
             typing_command = False
 
@@ -167,6 +178,7 @@ if __name__ == "__main__":
         T.grid(row=(len(hotkey_labels) // 10), column=(len(hotkey_labels) % 10), padx=5, pady=2)
 
         T.insert(tk.END, f"{hotkey}: {category}")
+        T.config(state="disabled")
         hotkey_labels[category] = T
 
     # Frame to hold command box
@@ -174,15 +186,15 @@ if __name__ == "__main__":
     command_frame.pack(fill="x")
 
     command_text = tk.Text(command_frame, height=1, width=10)
-    command_text.configure(background="black", foreground="white")
+    command_text.configure(background="black", foreground="white", state="disabled")
     command_text.pack(side=tk.LEFT, padx=5)
 
     text_input = tk.Text(command_frame, height=1)
-    text_input.configure(background="black", foreground="white")
+    text_input.configure(background="black", foreground="white", state="disabled")
     text_input.pack(side=tk.LEFT, padx=5, fill="x")
 
     progress = tk.Text(command_frame, height=1, width=10)
-    progress.configure(background="black", foreground="white")
+    progress.configure(background="black", foreground="white", state="disabled")
     progress.pack(side=tk.RIGHT)
 
     typing_command = False
