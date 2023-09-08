@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
             # Total for tqdm to display. -2 for header and trailing newline (but it doesnt
             # have to be precise).
-            total = sum(1 for _ in RESOURCES.joinpath(f"epoch{epoch}_cross_matches.csv").open()) - 2;
+            total = sum(1 for _ in RESOURCES.joinpath(f"epoch{epoch}_cross_matches.csv").open()) - 2
 
             with RESOURCES.joinpath(f"epoch{epoch}_cross_matches.csv").open() as f:
                 for row in tqdm(DictReader(f), total=total):
