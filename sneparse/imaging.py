@@ -30,22 +30,9 @@ from sneparse.util import unwrap
 ps1filename = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
 fitscut = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
 
-# See https://github.com/aplpy/aplpy/issues/423#issuecomment-848540091.
-def fix_aplpy_fits(aplpy_obj: FITSFigure, dropaxis=2):
-    """This removes the degenerated dimensions in APLpy 2.X...
-    The input must be the object returned by aplpy.FITSFigure().
-    `dropaxis` is the index where to start dropping the axis (by default it assumes the 3rd,4th place).
-    """
-    temp_wcs = aplpy_obj._wcs.dropaxis(dropaxis)
-    temp_wcs = temp_wcs.dropaxis(dropaxis)
-    aplpy_obj._wcs = temp_wcs
- 
-def locate_image_ps1(ra: float,
-                  dec: float,
-                  size: int = 240,
-                  filters="grizy",
-                  format_="fits",
-                  imagetypes="stack") -> str:
+def locate_image_ps1(
+    ra: float, dec: float, size: int = 240, filters="grizy", format_="fits", imagetypes="stack"
+) -> str:
     """
     Query ps1filenames.py service for multiple positions to get a list of images
     This adds a url column to the table to retrieve the cutout.
@@ -154,7 +141,6 @@ def plot_image_astropy(ra: float,
     for line in crosshair:
         ax.add_line(line)
 
-
     im = ax.imshow(image_data, norm=LogNorm(), cmap=cmap) # type: ignore
 
     # Set the x and y axis labels to "ra" and "dec"
@@ -213,8 +199,10 @@ def plot_image_apl(
     # Create the figure from the fits data
     north = not is_radio
     fig = FITSFigure(image_file, figure=figure, subplot=subplot, north=north)
+    frequency = 0.0
     if is_radio:
-        fix_aplpy_fits(fig)
+        frequency = fig._wcs.wcs.crval[2] * 1e-9 # GHz
+        fig._wcs = fig._wcs.celestial
 
     fig.recenter(ra, dec, radius=radius)
 
@@ -238,12 +226,14 @@ def plot_image_apl(
 
     if is_radio:
         observation_date = datetime.fromisoformat(header["DATE"])
+        rounded = round(frequency, 2) if (floor := int(frequency)) != frequency else floor
+        info = f"VLA - {rounded} GHz"
     else:
         t = Time(header["MJD-OBS"], format="mjd")
         t.format = "datetime"
         observation_date = t.value
+        info = "PS1 - r-band" if is_ps1 else "SkyMapper - r-band"
 
-    info = f"{'VLA - 3 GHz' if is_radio else ('PS1 - r-band' if is_ps1 else 'SkyMapper - r-band')}"
     fig.add_label(
         0.05, 0.85, f"{observation_date.date().isoformat()} - {info}",
         relative=True, color="black", size="x-large", horizontalalignment="left"
