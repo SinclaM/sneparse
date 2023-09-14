@@ -3,7 +3,6 @@
 # Array to store failed values
 fails=()
 
-# Function to retry plot_groups.py
 function run_batch {
     local retries=0
     local i=$1
@@ -27,7 +26,7 @@ function run_batch {
 }
 
 # Will be larger than needed because of duplicates.
-NUM_SNE=$(cat resources/cross_matches.csv | wc -l)
+NUM_SNE=$(cat "resources/epoch${EPOCH}_cross_matches.csv" | wc -l)
 
 BATCH_COUNT=100
 CACHE_FILE="sne_cache.pickle"

@@ -17,7 +17,7 @@ __check_defined = \
 test:
 	@python3 -m unittest discover tests/
 
-# Run the pipeline
+# Run the main pipeline for supernovae
 pipeline:
 	@:$(call check_defined, EPOCH) # ensure that the EPOCH is specified before starting the pipeline
 	scripts/build_catalog_db.py
@@ -28,6 +28,15 @@ pipeline:
 	mkdir "resources/images/epoch${EPOCH}_cross_matches"
 	scripts/image_driver.sh
 	scripts/prepare_categories.py "resources/images/epoch${EPOCH}_cross_matches" "resources/images/epoch${EPOCH}_categorized"
+
+# Run the pipeline for TDEs
+tde:
+	@:$(call check_defined, EPOCH) # ensure that the EPOCH is specified
+	scripts/build_catalog_db.py --no-sne --tde
+	scripts/cross_match.py --no-sne --tde
+	rm -rf "resources/images/epoch${EPOCH}_cross_matches_tde"
+	mkdir "resources/images/epoch${EPOCH}_cross_matches_tde"
+	DISPLAY= scripts/make_images.py --no-sne --tde 0 0 # the start and count arguments don't matter here
 
 # Visualize package dependency tree.
 # `pipdeptree` must be installed and in the $PATH.

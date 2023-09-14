@@ -9,6 +9,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 MASTER_TABLE_NAME  = "oac_tns_all_sne"
 CLEANED_TABLE_NAME = "oac_tns_cleaned_sne"
+TDE_TABLE_NAME = "oac_tde"
 
 class Base(DeclarativeBase):
     """
@@ -63,4 +64,18 @@ class CleanedRecord(Base, SneRecordWrapper):
     # Override inherited ra and dec fields. They are not optional in this table
     right_ascension: Mapped[float]
     declination    : Mapped[float]
+
+@dataclass
+class TdeRecord(Base):
+    """
+    A row in the table of TDE records.
+    """
+    __tablename__ = TDE_TABLE_NAME
+    
+    name           : Mapped[str]
+    right_ascension: Mapped[Optional[float]]
+    declination    : Mapped[Optional[float]]
+    discover_date  : Mapped[Optional[datetime]]
+    claimed_type   : Mapped[Optional[str]]
+    id: Mapped[int] = mapped_column(primary_key=True)
 
