@@ -60,7 +60,7 @@ return $?
 #set defaults
 #-----------------------------------------------------------------------
     USER_AGENT="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:108.0) Gecko/20100101 Firefox/108.0";
-    DIRNAME="sneparse/resources/tns-data/";
+    DIRNAME="resources/tns-data/";
     NMAX=500; TYPE=c; INVALID=
     FNAME="TNS"
         TFILE="z_$$.tsv"; touch $TFILE ${TFILE}t  #temporary files

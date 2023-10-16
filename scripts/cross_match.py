@@ -50,9 +50,8 @@ if __name__ == "__main__":
                 f"CREATE TEMPORARY TABLE {temp_cross_match} AS                                    \n"
                 f"    SELECT * FROM {CLEANED_TABLE_NAME} AS a, {gaussian} AS b                    \n"
                 f"    WHERE q3c_join(a.right_ascension, a.declination, b.ra, b.decl, {separation})\n"
-                f"    WHERE q3c_join(a.right_ascension, a.declination, b.ra, b.decl, {separation})\n"
                 f"        AND b.file_name LIKE 'VLASS{epoch}%'                                    \n"
-                f"        AND a.discover_date < TIMESTAMP '{EPOCH_DATE_CUTOFFS[epoch]}'           \n"
+                f"        AND a.discover_date < TIMESTAMP '{EPOCH_DATE_CUTOFFS[epoch]}';          \n"
             )
             print(cross_match)
             session.execute(cross_match)

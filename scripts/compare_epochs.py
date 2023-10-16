@@ -6,6 +6,7 @@ import re
 from csv import DictReader
 from datetime import datetime
 from dataclasses import dataclass
+import argparse
 
 from tqdm import tqdm
 from aplpy.core import log
@@ -41,6 +42,11 @@ if __name__ == "__main__":
     EPOCH_START = 1
     EPOCH_END = 2 # inclusive
     NUM_EPOCHS = 1 + EPOCH_END - EPOCH_START
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sne", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--tde", action=argparse.BooleanOptionalAction, default=False)
+    args = parser.parse_args()
 
     engine = create_engine(URL.create(
         drivername=unwrap(os.getenv("DRIVER_NAME")),
