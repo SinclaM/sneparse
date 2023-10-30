@@ -43,12 +43,28 @@ if __name__ == "__main__":
 
     if args.sne:
         with session_maker() as session:
-            gaussian = "pybdsf_gaussian"
+            # The foreign VLASS sources table is not indexed properly, so we create a temp
+            # copy of it and prepare it for cross matching.
+            temp_gaussian = "temp_gaussian"
+            create_temp_gaussian = text(
+                f"CREATE TEMPORARY TABLE {temp_gaussian} AS                              \n"
+                f"    SELECT * FROM pybdsf_gaussian WHERE file_name LIKE 'VLASS{epoch}%';\n"
+            )
+            print(create_temp_gaussian)
+            session.execute(create_temp_gaussian)
+
+            q3c_prepare_gaussian = text(
+                f"CREATE INDEX ON {temp_gaussian} (q3c_ang2ipix(\"ra\", \"decl\"));\n"
+                f"CLUSTER {temp_gaussian}_q3c_ang2ipix_idx ON {temp_gaussian};     \n"
+                f"ANALYZE {temp_gaussian};                                         \n"
+            )
+            print(q3c_prepare_gaussian)
+            session.execute(q3c_prepare_gaussian);
 
             temp_cross_match = "temp_cross_match"
             cross_match = text(
                 f"CREATE TEMPORARY TABLE {temp_cross_match} AS                                    \n"
-                f"    SELECT * FROM {CLEANED_TABLE_NAME} AS a, {gaussian} AS b                    \n"
+                f"    SELECT * FROM {CLEANED_TABLE_NAME} AS a, {temp_gaussian} AS b               \n"
                 f"    WHERE q3c_join(a.right_ascension, a.declination, b.ra, b.decl, {separation})\n"
                 f"        AND b.file_name LIKE 'VLASS{epoch}%'                                    \n"
                 f"        AND a.discover_date < TIMESTAMP '{EPOCH_DATE_CUTOFFS[epoch]}';          \n"
