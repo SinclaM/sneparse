@@ -26,7 +26,8 @@ renamings = DisjointSet({
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", type=Path)
+    parser.add_argument("src", type=Path)
+    parser.add_argument("dest", type=Path)
     args = parser.parse_args()
 
     engine = create_engine(URL.create(
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     with session_maker() as session:
         all_records = list(map(lambda r: r._tuple()[0], session.execute(select(CleanedRecord)).all()))
 
-    cross_matches_names = set(file.stem for file in args.path.glob("**/*.png"))
+    cross_matches_names = set(file.stem for file in args.src.glob("**/*.png"))
 
     records = pd.DataFrame(
         { k: v for (k, v) in vars(r).items() if not k.startswith("_") }
@@ -55,5 +56,10 @@ if __name__ == "__main__":
     cleaned_counts = counts.groupby(lambda s: renamings.find(s)).sum().sort_values(ascending=False)
 
     cleaned_counts.plot(kind="bar")
-    plt.show()
+
+    figure = plt.gcf() # get current figure
+    figure.set_size_inches(8, 8)
+
+    plt.tight_layout()
+    plt.savefig(args.dest, dpi=200)
 

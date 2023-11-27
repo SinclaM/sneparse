@@ -174,7 +174,8 @@ def plot_image_apl(
     filters: str = "grizy",
     cmap: str = "gray",
     image_file: Optional[str] = None,
-    is_radio: bool = False
+    is_radio: bool = False,
+    is_non_detection = False
 ) -> FITSFigure:
     name = record.name
     ra = unwrap(record.right_ascension).degrees
@@ -246,6 +247,11 @@ def plot_image_apl(
     if is_radio and record.discover_date is not None and observation_date < record.discover_date:
         fig.add_label(
             0.05, 0.95, "PRE-EXPLOSION", relative=True, color="red", size="xx-large", horizontalalignment="left"
+        )
+
+    if is_non_detection:
+        fig.add_label(
+            0.05, 0.05, "NON-DETECTION", relative=True, color="red", size="xx-large", horizontalalignment="left"
         )
 
     # The default `stretch="log"` is terrible for the VLASS radio data.

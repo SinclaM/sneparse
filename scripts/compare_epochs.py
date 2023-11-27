@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 from typing import Optional
+from collections import defaultdict
 import os
 from pathlib import Path
 import re
 from csv import DictReader
 from datetime import datetime
 from dataclasses import dataclass
-import argparse
 
 from tqdm import tqdm
 from aplpy.core import log
@@ -36,17 +36,12 @@ def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
 @dataclass
 class Info:
     record: SneRecord
-    vlass_fits_paths: list[Path]
+    vlass_fits_paths: list[Optional[Path]]
 
 if __name__ == "__main__":
     EPOCH_START = 1
-    EPOCH_END = 2 # inclusive
+    EPOCH_END = 3 # inclusive
     NUM_EPOCHS = 1 + EPOCH_END - EPOCH_START
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--sne", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--tde", action=argparse.BooleanOptionalAction, default=False)
-    args = parser.parse_args()
 
     engine = create_engine(URL.create(
         drivername=unwrap(os.getenv("DRIVER_NAME")),
@@ -60,9 +55,17 @@ if __name__ == "__main__":
     session_maker = sessionmaker(engine)
 
     good_sources: dict[str, Optional[Info]] = {}
+    epoch_appearances: dict[str, list[int]] = defaultdict(list)
 
-    for path in RESOURCES.joinpath("images").glob(f"epoch*_categorized/good/*.png"):
+    for path in RESOURCES.joinpath("images").glob("epoch1_categorized/good/*.png"):
         good_sources[path.stem] = None
+        epoch_appearances[path.stem].append(1)
+    for path in RESOURCES.joinpath("images").glob("epoch2_categorized/good/*.png"):
+        good_sources[path.stem] = None
+        epoch_appearances[path.stem].append(2)
+    for path in RESOURCES.joinpath("images").glob("epoch3_categorized/good/*.png"):
+        good_sources[path.stem] = None
+        epoch_appearances[path.stem].append(3)
 
     with session_maker() as session:
         for epoch in range(EPOCH_START, EPOCH_END + 1):
@@ -78,7 +81,10 @@ if __name__ == "__main__":
                             Source(row["source"])
                         )
 
-                        file_paths = [list(find_paths(session, row["file_name"], epoch))[0] for epoch in range(EPOCH_START, EPOCH_END + 1)] 
+                        file_paths = [
+                            next(iter(find_paths(session, row["file_name"], epoch)), None) for epoch in range(EPOCH_START, EPOCH_END + 1)
+                        ] 
+
                         good_sources[record.name] = Info(record, file_paths)
 
     # Turn off aplpy logs
@@ -117,15 +123,17 @@ if __name__ == "__main__":
         )
 
         for epoch in range(EPOCH_START, EPOCH_END + 1):
-            plot_image_apl(
-                record,
-                cmap="gray_r",
-                size=340,
-                image_file=str(info.vlass_fits_paths[epoch - 1]),
-                is_radio=True,
-                figure=fig,
-                subplot=[x_margin + epoch * (x_span + x_margin), 0.05, x_span, 0.9]
-            )
+            if info.vlass_fits_paths[epoch - 1] is not None:
+                plot_image_apl(
+                    record,
+                    cmap="gray_r",
+                    size=340,
+                    image_file=str(info.vlass_fits_paths[epoch - 1]),
+                    is_radio=True,
+                    figure=fig,
+                    subplot=[x_margin + epoch * (x_span + x_margin), 0.05, x_span, 0.9],
+                    is_non_detection=(epoch not in epoch_appearances[record.name])
+                )
 
         plt.savefig(dest.joinpath(f"{record.name}.png"))
         plt.close()
