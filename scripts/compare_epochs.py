@@ -23,6 +23,38 @@ from sneparse.imaging import plot_image_apl
 EPOCH_RE = re.compile(r"(?<=VLASS).+(?=\.ql)")
 VERSION_RE = re.compile(r"(?<=\.v).+(?=\.I\.iter)")
 
+@dataclass
+class OpticalSubplot: ...
+
+@dataclass
+class RadioSubplot:
+    epoch: int
+
+def subplot_relative_coordinates(subplot_type: OpticalSubplot | RadioSubplot, stacked: bool = True) -> list[float]:
+    if stacked:
+        span = 0.4
+        margin = (0.5 - span) / 2.0
+        match subplot_type:
+            case OpticalSubplot():
+                return [margin, 0.5 + margin, span, span]
+            case RadioSubplot(epoch) if epoch == 1:
+                return [margin, margin, span, span]
+            case RadioSubplot(epoch) if epoch == 2:
+                return [0.5 + margin, 0.5 + margin, span, span]
+            case RadioSubplot(epoch) if epoch == 3:
+                return [0.5 + margin, margin, span, span]
+            case _:
+                assert False
+    else:
+        x_margin = 0.07 * 2 / image_count
+        x_span = (1 - x_margin - image_count * x_margin) / image_count
+
+        match subplot_type:
+            case OpticalSubplot():
+                return [x_margin, 0.05, x_span, 0.9]
+            case RadioSubplot(epoch):
+                return [x_margin + epoch * (x_span + x_margin), 0.05, x_span, 0.9]
+
 def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
     like = re.sub(VERSION_RE, "%", re.sub(EPOCH_RE, f"{epoch}.%", file_name))
 
@@ -99,7 +131,7 @@ if __name__ == "__main__":
         file_paths = info.vlass_fits_paths
 
         image_count = 1 + NUM_EPOCHS # 1 optical + radio epochs
-        fig = plt.figure(figsize=(8 * image_count, 8))
+        fig = plt.figure(figsize=(16, 16))
 
         title_date = "Unknown discovery date" if record.discover_date is None \
                         else f"Discovered {record.discover_date.date()}"
@@ -119,7 +151,7 @@ if __name__ == "__main__":
             filters="r",
             is_radio=False,
             figure=fig,
-            subplot=[x_margin, 0.05, x_span, 0.9]
+            subplot=subplot_relative_coordinates(OpticalSubplot())
         )
 
         for epoch in range(EPOCH_START, EPOCH_END + 1):
@@ -131,7 +163,7 @@ if __name__ == "__main__":
                     image_file=str(info.vlass_fits_paths[epoch - 1]),
                     is_radio=True,
                     figure=fig,
-                    subplot=[x_margin + epoch * (x_span + x_margin), 0.05, x_span, 0.9],
+                    subplot=subplot_relative_coordinates(RadioSubplot(epoch)),
                     is_non_detection=(epoch not in epoch_appearances[record.name])
                 )
 
