@@ -3,25 +3,20 @@ from typing import Optional
 from collections import defaultdict
 import os
 from pathlib import Path
-import re
 from csv import DictReader
 from datetime import datetime
 from dataclasses import dataclass
 
 from tqdm import tqdm
 from aplpy.core import log
-from sqlalchemy import URL, create_engine, text
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
 import matplotlib.pyplot as plt
 
 from sneparse import RESOURCES
 from sneparse.record import SneRecord, Source
-from sneparse.util import unwrap
+from sneparse.util import unwrap, find_paths
 from sneparse.imaging import plot_image_apl
-
-EPOCH_RE = re.compile(r"(?<=VLASS).+(?=\.ql)")
-VERSION_RE = re.compile(r"(?<=\.v).+(?=\.I\.iter)")
 
 @dataclass
 class OpticalSubplot: ...
@@ -54,16 +49,6 @@ def subplot_relative_coordinates(subplot_type: OpticalSubplot | RadioSubplot, st
                 return [x_margin, 0.05, x_span, 0.9]
             case RadioSubplot(epoch):
                 return [x_margin + epoch * (x_span + x_margin), 0.05, x_span, 0.9]
-
-def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
-    like = re.sub(VERSION_RE, "%", re.sub(EPOCH_RE, f"{epoch}.%", file_name))
-
-    select_path_name = text(
-        f"SELECT concat(path_to_file, file_name) FROM file_definition WHERE file_name LIKE '{like}';"
-    )
-    result = session.execute(select_path_name).all()
-
-    return { Path("/projects/b1094/software/catalogs/").joinpath(row[0]) for row in result }
 
 @dataclass
 class Info:

@@ -4,7 +4,6 @@ from pprint import pprint
 from csv import DictReader
 import os
 from pathlib import Path
-import re
 import traceback
 import argparse
 import pickle
@@ -12,28 +11,14 @@ from datetime import datetime
 
 from tqdm import tqdm
 from aplpy.core import log
-from sqlalchemy import URL, create_engine, text
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
 import matplotlib.pyplot as plt
 
 from sneparse import RESOURCES
 from sneparse.record import SneRecord, Source
-from sneparse.util import unwrap
+from sneparse.util import unwrap, find_paths
 from sneparse.imaging import plot_image_apl
-
-EPOCH_RE = re.compile(r"(?<=VLASS).+(?=\.ql)")
-VERSION_RE = re.compile(r"(?<=\.v).+(?=\.I\.iter)")
-
-def find_paths(session: Session, file_name: str, epoch: int) -> set[Path]:
-    like = re.sub(VERSION_RE, "%", re.sub(EPOCH_RE, f"{epoch}.%", file_name))
-
-    select_path_name = text(
-        f"SELECT concat(path_to_file, file_name) FROM file_definition WHERE file_name LIKE '{like}';"
-    )
-    result = session.execute(select_path_name).all()
-
-    return { Path("/projects/b1094/software/catalogs/").joinpath(row[0]) for row in result }
 
 if __name__ == "__main__":
     epoch = int(unwrap(os.getenv("EPOCH")))
