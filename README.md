@@ -47,4 +47,44 @@ following environment variables should be set:
   send changes with `make put` (using `rsync`). Quest is Northwestern's HPC cluster and stores the VLASS
   quicklook data used in this project.
 
+## Scripts
+Files under `scripts` can be run directly once the project has been setup. 
 
+* ```build_catalog_csv.py```: parses OAC and TNS sources into a csv catalog (`resources/sne.csv`).
+* ```build_catalog_db.py```: parses OAC and TNS sources into the transients database (specified by the
+  environment variables listed above). Two tables will be created: a "master" table (`oac_tns_all_sne`),
+  which includes all parsed sources, and a "cleaned" table (`oac_tns_cleaned_sne`), which reduces duplicates
+  across the catalogs.
+* ```check_files.py```: runs a simple check to verify that most files on Quest are available in the `file_definiton`
+  table in the transients' VLASS database.
+* ```check_paths.py```: runs a simple check to verify that most paths reported in the `file_definiton` are
+  available on Quest.
+* ```compare_epochs.py```: makes images to compare good sources across epochs, populating `resources/images/epoch_comparisons`
+  with the resulting images. Assumes cross matching and categorization have already occurred.
+* ```compare_unfiltered_epochs.py```: prints sources that appear in one or more epochs but did not appear in one or more
+  other epochs. For example, `scripts/compare_unfiltered_epochs.py --initial 1 2 --final 3` prints sources appearing in
+  epoch 3 which did not appear in epochs 1 or 2. Assumes cross matching has already occurred.
+* ```cross_match.py```: cross matches known sources (placed into a database by `build_catalog_db.py`) against VLASS blobs
+  in a given epoch (requires `EPOCH` environment variable to be set to `1`, `2`, or `3`). Writes result to
+  `resources/epoch{EPOCH}_cross_matches.csv`.
+* ```group_driver.sh```: auxiliary script to run `plot_groups.py`.
+* ```image_driver.sh```: auxiliary script to run `make_images.py`.
+* ```make_images.py```: make images for cross matches sources for a given epoch (requires `EPOCH` environment variable
+  to be set to `1`, `2`, or `3`). Writes resulting images to `epoch{EPOCH}_cross_matches`.
+* ```piechart.py```: simple script to visualize names of parsed sources. Requires `build_catalog_csv.py` to be run first.
+* ```plot_groups.py```: makes images showing nearby sources identified as a group.
+* ```prepare_categories.py```: makes folder structure to prepare for image categorization.
+* ```qTNSm.sh```: downloads images from TNS.
+* ```query_pairs.py```: finds groups in a csv catalog (from `build_catalog_csv.py`).
+* ```sort_images.py```: runs a GUI for image categorization.
+* ```visualize_categories.py```: visualizes classifications for different sources.
+
+Many of these scripts are not essential to the core pipeline. To run the pipeline, simply use the targets in the `Makefile`:
+
+```
+# Run the main pipeline for SNe
+make pipeline
+
+# Run the main pipeline for TDEs
+make tde
+```
