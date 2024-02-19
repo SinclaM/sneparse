@@ -43,6 +43,7 @@ following environment variables should be set:
   transients host, or a server with equivalent databases.
 * `TRANSIENTS_PORT`: the port to connect to on the transients server.
 * `TRANSIENTS_USERNAME` and `TRANSIENTS_PASSWORD`: username and password for access to the transients server.
+* `VLASS_QUICKLOOK`: path to VLASS quicklook folder.
 * `QUEST_PROJECT_DIR` (optional): an `scp` URL to a remote mirror of the project, used to quickly update
   send changes with `make put` (using `rsync`). Quest is Northwestern's HPC cluster and stores the VLASS
   quicklook data used in this project.
